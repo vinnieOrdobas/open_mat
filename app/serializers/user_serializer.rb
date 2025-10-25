@@ -8,7 +8,8 @@ class UserSerializer < ApplicationSerializer
              :lastname,
              :role,
              :belt_rank,
-             :created_at
+             :created_at,
+             :updated_at
 
   # We could also add associations here later, like:
   # has_many :academies
