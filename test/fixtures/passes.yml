@@ -1,0 +1,21 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  academy: one
+  name: MyString
+  description: MyText
+  price_cents: 1
+  currency: MyString
+  pass_type: MyString
+  class_credits: 1
+  is_active: false
+
+two:
+  academy: two
+  name: MyString
+  description: MyText
+  price_cents: 1
+  currency: MyString
+  pass_type: MyString
+  class_credits: 1
+  is_active: false
