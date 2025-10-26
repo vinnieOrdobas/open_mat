@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'rails_helper'
-
 RSpec.describe Amenity, type: :model do
   describe 'associations' do
     it { should have_many(:academy_amenities).dependent(:destroy) }

@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'rails_helper'
-
 RSpec.describe Api::V1::UsersController, type: :controller do
     describe 'POST #create' do
       subject(:do_action) { post :create, params: request_params }
