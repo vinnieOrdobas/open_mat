@@ -6,11 +6,13 @@ Rails.application.routes.draw do
   # API namespace
   namespace :api do
     namespace :v1 do
+      # User registration and authentication
       resources :users, only: [ :create ]
-
       post :login, to: "sessions#create"
-
       get :profile, to: "profile#show"
+
+      # Academy Management
+      resources :academies, only: [:create]
     end
   end
 
