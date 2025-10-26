@@ -6,11 +6,9 @@ Rails.application.routes.draw do
   # API namespace
   namespace :api do
     namespace :v1 do
-      # Task 2: Add this line for user registration
       resources :users, only: [ :create ]
-
-      # We will add more routes here soon
-      # (e.g., POST /login, GET /profile)
+      resources :sessions, only: [ :create ]
+      post :login, to: "sessions#create"
     end
   end
 

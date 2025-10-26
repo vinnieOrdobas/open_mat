@@ -132,6 +132,8 @@ GEM
       activesupport (>= 7.0.0)
     json (2.15.2)
     jsonapi-renderer (0.2.2)
+    jwt (3.1.2)
+      base64
     language_server-protocol (3.17.0.5)
     lint_roller (1.1.0)
     logger (1.7.0)
@@ -319,6 +321,7 @@ GEM
       railties (>= 6.0.0)
     stringio (3.1.7)
     thor (1.4.0)
+    timecop (0.9.10)
     timeout (0.4.3)
     tsort (0.2.0)
     turbo-rails (2.0.17)
@@ -365,6 +368,7 @@ DEPENDENCIES
   error_highlight (>= 0.4.0)
   importmap-rails
   jbuilder
+  jwt
   pg (~> 1.1)
   pry-byebug
   puma (>= 5.0)
@@ -376,6 +380,7 @@ DEPENDENCIES
   shoulda-matchers
   sprockets-rails
   stimulus-rails
+  timecop
   turbo-rails
   tzinfo-data
   web-console
