@@ -7,12 +7,12 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       # User registration and authentication
-      resources :users, only: [ :create ]
+      resources :users, only: %i[create]
       post :login, to: "sessions#create"
       get :profile, to: "profile#show"
 
       # Academy Management
-      resources :academies, only: [:create]
+      resources :academies, only: %i[create show update]
     end
   end
 
