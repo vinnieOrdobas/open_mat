@@ -1,20 +1,7 @@
 # frozen_string_literal: true
 
 RSpec.describe UserSerializer, type: :serializer do
-  let!(:user) do
-    User.new(
-      id: 1,
-      firstname: 'Test',
-      lastname: 'User',
-      email: 'test@example.com',
-      username: 'testuser',
-      password_digest: 'a-very-secret-hash', # The field we want to hide
-      role: 'student',
-      belt_rank: 'white',
-      created_at: Time.current,
-      updated_at: Time.current
-    )
-  end
+  let!(:user) { create(:user, firstname: 'John', lastname: 'Doe', email: 'email@email.com', username: 'john_doe', role: 'student', belt_rank: 'blue') }
 
   # This is how we invoke the serializer and get its output as a Ruby hash
   let(:json) { UserSerializer.new(user).as_json }

@@ -5,16 +5,7 @@ RSpec.describe Sessions::AuthenticateUser do
     let(:email) { 'test@example.com' }
     let(:password) { 'password123' }
 
-    let!(:user) do
-      User.create!(
-        firstname: 'Test',
-        lastname: 'User',
-        email: email,
-        username: 'testuser',
-        password: password,
-        password_confirmation: password
-      )
-    end
+    let!(:user) { create(:user, email: email, password: password) }
 
     # Memoize the service instance
     let(:service) { described_class.new(email, password) }
