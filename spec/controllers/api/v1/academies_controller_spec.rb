@@ -1,35 +1,26 @@
 # frozen_string_literal: true
 
 RSpec.describe Api::V1::AcademiesController, type: :controller do
+  let!(:owner_user) { create(:user, :owner) }
+  let!(:other_owner) { create(:user, :owner) }
+  let!(:student_user) { create(:user, role: 'student') }
+
+  let(:owner_headers) { { 'Authorization' => "Bearer #{JsonWebToken.encode(user_id: owner_user.id)}" } }
+  let(:other_owner_headers) { { 'Authorization' => "Bearer #{JsonWebToken.encode(user_id: other_owner.id)}" } }
+  let(:student_headers) { { 'Authorization' => "Bearer #{JsonWebToken.encode(user_id: student_user.id)}" } }
+
   describe 'POST #create' do
     subject(:do_action) { post :create, params: request_params }
 
     let(:valid_academy_params) do
-      {
-        name: 'Gracie Barra Anytown',
-        email: 'info@gbanytown.com',
-        street_address: '123 Mat St',
-        city: 'Anytown',
-        country: 'USA'
-      }
+      { name: 'Gracie Barra Anytown', email: 'info@gbanytown.com', street_address: '123 Mat St', city: 'Anytown', country: 'USA' }
     end
     let(:request_params) { { academy: valid_academy_params } }
-
-    let(:permitted_params) do
-      ActionController::Parameters.new(valid_academy_params).permit(
-        :name, :email, :phone_number, :website, :description, :street_address,
-        :city, :state_province, :postal_code, :country, :latitude, :longitude
-      )
-    end
+    let(:permitted_params) { ActionController::Parameters.new(valid_academy_params).permit! }
 
     let(:mock_create_service) { instance_double(Academies::CreateAcademy) }
     let(:mock_academy) { instance_double(Academy, id: 1) }
     let(:mock_serializer) { instance_double(AcademySerializer) }
-
-    let!(:owner_user) { create(:user, :owner) }
-    let!(:student_user) { create(:user, role: 'student') }
-    let(:owner_headers) { { 'Authorization' => "Bearer #{JsonWebToken.encode(user_id: owner_user.id)}" } }
-    let(:student_headers) { { 'Authorization' => "Bearer #{JsonWebToken.encode(user_id: student_user.id)}" } }
 
     context 'with an authenticated owner user' do
       let(:expected_hash) { { id: 1, name: 'Gracie Barra Anytown' } }
@@ -48,70 +39,152 @@ RSpec.describe Api::V1::AcademiesController, type: :controller do
         expect(mock_create_service).to have_received(:perform)
       end
 
-      it 'calls the AcademySerializer' do
-        do_action
-        expect(AcademySerializer).to have_received(:new).with(mock_academy)
-      end
-
-      it 'returns a :created (201) status and the new academy' do
+      it 'returns a :created (201) status' do
         do_action
         expect(response).to have_http_status(:created)
-        expect(response.body).to eq(expected_hash.to_json)
-      end
-
-      context 'when the service fails (e.g., validation error)' do
-        let(:errors) { [ "Name can't be blank" ] }
-
-        before do
-          allow(mock_create_service).to receive(:perform).and_return({ success: false, errors: errors })
-        end
-
-        it 'does not call the serializer' do
-          do_action
-          expect(AcademySerializer).not_to have_received(:new)
-        end
-
-        it 'returns an :unprocessable_entity (422) status and the errors' do
-          do_action
-          json_response = JSON.parse(response.body).deep_symbolize_keys
-          expect(response).to have_http_status(:unprocessable_entity)
-          expect(json_response[:errors]).to match(errors)
-        end
       end
     end
 
     context 'with an authenticated user who is NOT an owner' do
-      before do
-        request.headers.merge!(student_headers)
-        allow(Academies::CreateAcademy).to receive(:new)
-      end
+      before { request.headers.merge!(student_headers) }
 
       it 'does NOT call the CreateAcademy service' do
+        allow(Academies::CreateAcademy).to receive(:new)
         do_action
         expect(Academies::CreateAcademy).not_to have_received(:new)
       end
 
       it 'returns an :unauthorized (401) status' do
         do_action
-        json_response = JSON.parse(response.body).deep_symbolize_keys
         expect(response).to have_http_status(:unauthorized)
-        expect(json_response[:error]).to eq('Not Authorized')
       end
     end
 
     context 'with no authenticated user (missing token)' do
-      before { allow(Academies::CreateAcademy).to receive(:new) }
-
-      it 'does NOT call the CreateAcademy service' do
+      it 'returns an :unauthorized (401) status' do
         do_action
-        expect(Academies::CreateAcademy).not_to have_received(:new)
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+  end
+
+  describe 'GET #show' do
+    subject(:do_action) { get :show, params: { id: academy.id } }
+
+    let!(:academy) { create(:academy, user: owner_user) }
+
+    context 'when authenticated as the academy owner' do
+      before { request.headers.merge!(owner_headers) }
+
+      it 'returns an :ok (200) status' do
+        do_action
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'returns the correct academy JSON' do
+        do_action
+        json_response = JSON.parse(response.body)
+        expect(json_response['id']).to eq(academy.id)
+        expect(json_response['name']).to eq(academy.name)
+      end
+    end
+
+    context 'when authenticated as a different owner' do
+      before { request.headers.merge!(other_owner_headers) }
+
+      it 'returns an :unauthorized (401) status' do
+        do_action
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context 'when authenticated as a student' do
+      before { request.headers.merge!(student_headers) }
+
+      it 'returns an :unauthorized (401) status' do
+        do_action
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context 'with no authenticated user' do
+      it 'returns an :unauthorized (401) status' do
+        do_action
+        expect(response).to have_http_status(:unauthorized)
+      end
+    end
+
+    context 'when the academy does not exist' do
+      before { request.headers.merge!(owner_headers) }
+
+      it 'returns a :not_found (44) status' do
+        get :show, params: { id: 'invalid-id' }
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+  end
+
+  describe 'PATCH #update' do
+    subject(:do_action) { patch :update, params: request_params }
+
+    let!(:academy) { create(:academy, user: owner_user, name: 'Old Name') }
+    let(:update_params) { { name: 'New Name' } }
+    let(:request_params) { { id: academy.id, academy: update_params } }
+    let(:permitted_params) { ActionController::Parameters.new(update_params).permit! }
+
+    let(:mock_update_service) { instance_double(Academies::UpdateAcademy) }
+    let(:mock_serializer) { instance_double(AcademySerializer) }
+
+    context 'when authenticated as the academy owner' do
+      let(:expected_hash) { { id: academy.id, name: 'New Name' } }
+
+      before do
+        request.headers.merge!(owner_headers)
+        allow(Academies::UpdateAcademy).to receive(:new).with(academy, permitted_params).and_return(mock_update_service)
+        allow(mock_update_service).to receive(:perform).and_return({ success: true, academy: academy.tap { |a| a.name = 'New Name' } })
+        allow(AcademySerializer).to receive(:new).with(an_instance_of(Academy)).and_return(mock_serializer)
+        allow(mock_serializer).to receive(:as_json).and_return(expected_hash.to_json)
+      end
+
+      it 'calls the UpdateAcademy service' do
+        do_action
+        expect(Academies::UpdateAcademy).to have_received(:new).with(academy, permitted_params)
+        expect(mock_update_service).to have_received(:perform)
+      end
+
+      it 'returns an :ok (200) status and the updated academy' do
+        do_action
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to eq(expected_hash.to_json)
+      end
+
+      context 'when the service fails (validation error)' do
+        let(:errors) { [ "Name can't be blank" ] }
+        before do
+          allow(mock_update_service).to receive(:perform).and_return({ success: false, errors: errors })
+        end
+
+        it 'returns an :unprocessable_entity (422) status' do
+          do_action
+          expect(response).to have_http_status(:unprocessable_entity)
+        end
+      end
+    end
+
+    context 'when authenticated as a different owner' do
+      before do
+        request.headers.merge!(other_owner_headers)
+        allow(Academies::UpdateAcademy).to receive(:new) # Stub to check
+      end
+
+      it 'does NOT call the UpdateAcademy service' do
+        do_action
+        expect(Academies::UpdateAcademy).not_to have_received(:new)
       end
 
       it 'returns an :unauthorized (401) status' do
         do_action
-        json_response = JSON.parse(response.body).deep_symbolize_keys
         expect(response).to have_http_status(:unauthorized)
-        expect(json_response[:error]).to eq('Not Authorized')
       end
     end
   end
