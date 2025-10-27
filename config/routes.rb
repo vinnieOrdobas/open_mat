@@ -13,6 +13,8 @@ Rails.application.routes.draw do
 
       # Academy Management
       resources :academies, only: %i[create show update]
+
+      resources :amenities, only: %i[index]
     end
   end
 
