@@ -1,10 +1,16 @@
 # frozen_string_literal: true
 
 class Api::V1::AcademiesController < Api::V1::ApplicationController
-  before_action :authenticate_request!
-  before_action :set_academy, only: [ :show, :update ]
-  before_action :authorize_owner!, only: [ :create ]
-  before_action :authorize_academy_owner!, only: [ :show, :update ]
+  before_action :authenticate_request!, except: %i[index]
+  before_action :set_academy, only: %i[show update]
+  before_action :authorize_owner!, only: %i[create]
+  before_action :authorize_academy_owner!, only: %i[show update]
+
+  def index
+    @academies = Academy.all # Fetch all academies
+
+    render json: @academies, each_serializer: AcademySerializer, status: :ok
+  end
 
   def create
     return render json: { error: "Not Authorized" }, status: :unauthorized unless owner?

@@ -12,7 +12,7 @@ Rails.application.routes.draw do
       get :profile, to: "profile#show"
 
       # Academy Management
-      resources :academies, only: %i[create show update] do
+      resources :academies, only: %i[index create show update] do
         resources :academy_amenities, only: %i[create destroy], controller: "academy_amenities", path: "amenities"
         resources :passes, only: %i[create update destroy]
       end

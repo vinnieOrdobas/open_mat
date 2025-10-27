@@ -9,6 +9,39 @@ RSpec.describe Api::V1::AcademiesController, type: :controller do
   let(:other_owner_headers) { { 'Authorization' => "Bearer #{JsonWebToken.encode(user_id: other_owner.id)}" } }
   let(:student_headers) { { 'Authorization' => "Bearer #{JsonWebToken.encode(user_id: student_user.id)}" } }
 
+  describe 'GET #index' do
+    subject(:do_action) { get :index }
+
+    let!(:academy1) { create(:academy, name: 'Academy One') }
+    let!(:academy2) { create(:academy, name: 'Academy Two') }
+
+    it 'returns an :ok (200) status' do
+      do_action
+      expect(response).to have_http_status(:ok)
+    end
+
+    it 'returns a list of all academies' do
+      do_action
+      json_response = JSON.parse(response.body)
+      expect(json_response).to be_an(Array)
+      expect(json_response.count).to eq(2)
+      expect(json_response.first['name']).to eq(academy1.name)
+      expect(json_response.last['name']).to eq(academy2.name)
+    end
+
+    it 'uses the AcademySerializer' do
+      do_action
+      json_response = JSON.parse(response.body)
+      expect(json_response.first).to include('id', 'name', 'city', 'country', 'created_at')
+      expect(json_response.first).not_to include('payout_info')
+    end
+
+    it 'does not require authentication' do
+      do_action
+      expect(response).to have_http_status(:ok)
+    end
+  end
+
   describe 'POST #create' do
     subject(:do_action) { post :create, params: request_params }
 
