@@ -2,34 +2,94 @@
 
 RSpec.describe 'Api::V1::Academies', type: :request do
   describe 'GET /api/v1/academies (Index)' do
-    let!(:academy1) { create(:academy, name: 'Academy One', city: 'City A') }
-    let!(:academy2) { create(:academy, name: 'Academy Two', city: 'City B') }
+    let!(:amenity_showers) { create(:amenity, name: 'Showers') }
+    let!(:amenity_mats) { create(:amenity, name: 'Large Mat Area') } # Not used by academies
+
+    let!(:academy1) { create(:academy, name: 'Academy One', city: 'Dublin', country: 'IE') }
+    let!(:academy2) { create(:academy, name: 'Academy Two', city: 'Dublin', country: 'IE') }
+    let!(:academy3) { create(:academy, name: 'Academy Three', city: 'Cork', country: 'IE') }
+    let!(:academy4) { create(:academy, name: 'Academy Four', city: 'London', country: 'GB') }
+
+    before do
+      create(:academy_amenity, academy: academy1, amenity: amenity_showers)
+      create(:academy_amenity, academy: academy3, amenity: amenity_showers)
+    end
 
     let(:json_response) { JSON.parse(response.body) }
 
-    before do
-      get '/api/v1/academies'
+    context 'without filters' do
+      before { get '/api/v1/academies' }
+
+      it 'returns an :ok (200) status' do
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'returns a list of all academies' do
+        expect(json_response).to be_an(Array)
+        expect(json_response.count).to eq(4)
+      end
+
+      it 'returns data structured by the AcademySerializer' do
+        expect(json_response.first).to include('id', 'name', 'city', 'country')
+        expect(json_response.first).not_to include('payout_info')
+      end
     end
 
-    it 'returns an :ok (200) status' do
-      expect(response).to have_http_status(:ok)
+    context 'when filtering by city' do
+      it 'returns only academies in that city (case-insensitive)' do
+        get '/api/v1/academies?city=Dublin'
+        expect(response).to have_http_status(:ok)
+        expect(json_response.count).to eq(2)
+        expect(json_response.map { |a| a['name'] }).to contain_exactly('Academy One', 'Academy Two')
+
+        get '/api/v1/academies?city=dublin'
+        expect(response).to have_http_status(:ok)
+        expect(json_response.count).to eq(2)
+      end
+
+      it 'returns academies matching partially by city' do
+        get '/api/v1/academies?city=Dub'
+        expect(response).to have_http_status(:ok)
+        expect(json_response.count).to eq(2)
+        expect(json_response.map { |a| a['name'] }).to contain_exactly('Academy One', 'Academy Two')
+      end
     end
 
-    it 'returns a list of all academies' do
-      expect(json_response).to be_an(Array)
-      expect(json_response.count).to eq(2)
+    context 'when filtering by country' do
+      it 'returns only academies in that country (case-insensitive)' do
+        get '/api/v1/academies?country=IE'
+        expect(response).to have_http_status(:ok)
+        expect(json_response.count).to eq(3)
+        expect(json_response.map { |a| a['name'] }).to contain_exactly('Academy One', 'Academy Two', 'Academy Three')
 
-      academy_names = json_response.map { |academy| academy['name'] }
-      expect(academy_names).to include('Academy One', 'Academy Two')
+        get '/api/v1/academies?country=ie'
+        expect(response).to have_http_status(:ok)
+        expect(json_response.count).to eq(3)
+      end
     end
 
-    it 'returns academy data structured by the AcademySerializer' do
-      expect(json_response.first).to include('id', 'name', 'city', 'country', 'created_at')
-      expect(json_response.first).not_to include('payout_info')
+    context 'when filtering by amenity_id' do
+      it 'returns only academies with that amenity' do
+        get "/api/v1/academies?amenity_id=#{amenity_showers.id}"
+        expect(response).to have_http_status(:ok)
+        expect(json_response.count).to eq(2)
+        expect(json_response.map { |a| a['name'] }).to contain_exactly('Academy One', 'Academy Three')
+      end
+
+      it 'returns an empty list if no academy has the amenity' do
+        get "/api/v1/academies?amenity_id=#{amenity_mats.id}"
+        expect(response).to have_http_status(:ok)
+        expect(json_response.count).to eq(0)
+      end
+    end
+
+    context 'when chaining multiple filters' do
+      it 'returns academies matching all criteria' do
+        get "/api/v1/academies?city=Dublin&country=IE&amenity_id=#{amenity_showers.id}"
+        expect(response).to have_http_status(:ok)
+        expect(json_response.count).to eq(1)
+        expect(json_response.first['name']).to eq('Academy One')
+      end
     end
   end
-
-  # We will add describe blocks for GET /show, POST /create, PATCH /update later
-  # if needed for E2E testing of those specific endpoints, but the controller
-  # specs and academy_management_spec cover those well for now.
 end

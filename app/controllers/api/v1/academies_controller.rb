@@ -4,10 +4,10 @@ class Api::V1::AcademiesController < Api::V1::ApplicationController
   before_action :authenticate_request!, except: %i[index]
   before_action :set_academy, only: %i[show update]
   before_action :authorize_owner!, only: %i[create]
-  before_action :authorize_academy_owner!, only: %i[show update]
+  before_action :authorize_academy_owner!, only: %i[update]
 
   def index
-    @academies = Academy.all # Fetch all academies
+    @academies = search_query
 
     render json: @academies, each_serializer: AcademySerializer, status: :ok
   end
@@ -36,7 +36,16 @@ class Api::V1::AcademiesController < Api::V1::ApplicationController
 
   private
 
-  # Strong params for creating an academy
+  def search_query
+    query = Academies::SearchQuery.new
+
+    query = query.by_city(params[:city]) if params[:city].present?
+    query = query.by_country(params[:country]) if params[:country].present?
+    query = query.with_amenity_id(params[:amenity_id]) if params[:amenity_id].present?
+
+    query.results
+  end
+
   def academy_params
     params.require(:academy).permit(
       :name,

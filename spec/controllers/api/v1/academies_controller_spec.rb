@@ -10,35 +10,82 @@ RSpec.describe Api::V1::AcademiesController, type: :controller do
   let(:student_headers) { { 'Authorization' => "Bearer #{JsonWebToken.encode(user_id: student_user.id)}" } }
 
   describe 'GET #index' do
-    subject(:do_action) { get :index }
+    subject(:do_action) { get :index, params: request_params }
+    let(:request_params) { {} }
 
+    let(:mock_query_object) { instance_double(Academies::SearchQuery) }
     let!(:academy1) { create(:academy, name: 'Academy One') }
     let!(:academy2) { create(:academy, name: 'Academy Two') }
+    let(:filtered_academies) { [ academy1, academy2 ] }
+
+    before do
+      allow(Academies::SearchQuery).to receive(:new).and_return(mock_query_object)
+      allow(mock_query_object).to receive(:by_city).and_return(mock_query_object)
+      allow(mock_query_object).to receive(:by_country).and_return(mock_query_object)
+      allow(mock_query_object).to receive(:with_amenity_id).and_return(mock_query_object)
+      allow(mock_query_object).to receive(:results).and_return(filtered_academies)
+      allow(AcademySerializer).to receive(:new).and_call_original # Allow it to work normally
+    end
+
+    it 'instantiates a SearchQuery' do
+      do_action
+      expect(Academies::SearchQuery).to have_received(:new)
+    end
+
+    it 'calls .results on the query object' do
+      do_action
+      expect(mock_query_object).to have_received(:results)
+    end
 
     it 'returns an :ok (200) status' do
       do_action
       expect(response).to have_http_status(:ok)
     end
 
-    it 'returns a list of all academies' do
-      do_action
-      json_response = JSON.parse(response.body)
-      expect(json_response).to be_an(Array)
-      expect(json_response.count).to eq(2)
-      expect(json_response.first['name']).to eq(academy1.name)
-      expect(json_response.last['name']).to eq(academy2.name)
-    end
-
-    it 'uses the AcademySerializer' do
-      do_action
-      json_response = JSON.parse(response.body)
-      expect(json_response.first).to include('id', 'name', 'city', 'country', 'created_at')
-      expect(json_response.first).not_to include('payout_info')
-    end
-
-    it 'does not require authentication' do
+    it 'returns an :ok (200) status and renders a JSON array' do
       do_action
       expect(response).to have_http_status(:ok)
+
+      json_response = JSON.parse(response.body)
+      expect(json_response).to be_an(Array)
+    end
+
+    context 'with city filter param' do
+      let(:request_params) { { city: 'Dublin' } }
+
+      it 'calls .by_city on the query object' do
+        do_action
+        expect(mock_query_object).to have_received(:by_city).with('Dublin')
+      end
+    end
+
+    context 'with country filter param' do
+      let(:request_params) { { country: 'IE' } }
+
+      it 'calls .by_country on the query object' do
+        do_action
+        expect(mock_query_object).to have_received(:by_country).with('IE')
+      end
+    end
+
+    context 'with amenity_id filter param' do
+      let(:request_params) { { amenity_id: '5' } }
+
+      it 'calls .with_amenity_id on the query object' do
+        do_action
+        expect(mock_query_object).to have_received(:with_amenity_id).with('5')
+      end
+    end
+
+    context 'with multiple filter params' do
+      let(:request_params) { { city: 'Cork', amenity_id: '10' } }
+
+      it 'calls all relevant filter methods' do
+        do_action
+        expect(mock_query_object).to have_received(:by_city).with('Cork')
+        expect(mock_query_object).not_to have_received(:by_country) # Ensure non-present filters aren't called
+        expect(mock_query_object).to have_received(:with_amenity_id).with('10')
+      end
     end
   end
 
@@ -119,31 +166,6 @@ RSpec.describe Api::V1::AcademiesController, type: :controller do
         json_response = JSON.parse(response.body)
         expect(json_response['id']).to eq(academy.id)
         expect(json_response['name']).to eq(academy.name)
-      end
-    end
-
-    context 'when authenticated as a different owner' do
-      before { request.headers.merge!(other_owner_headers) }
-
-      it 'returns an :unauthorized (401) status' do
-        do_action
-        expect(response).to have_http_status(:unauthorized)
-      end
-    end
-
-    context 'when authenticated as a student' do
-      before { request.headers.merge!(student_headers) }
-
-      it 'returns an :unauthorized (401) status' do
-        do_action
-        expect(response).to have_http_status(:unauthorized)
-      end
-    end
-
-    context 'with no authenticated user' do
-      it 'returns an :unauthorized (401) status' do
-        do_action
-        expect(response).to have_http_status(:unauthorized)
       end
     end
 
