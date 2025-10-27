@@ -14,6 +14,7 @@ Rails.application.routes.draw do
       # Academy Management
       resources :academies, only: %i[create show update] do
         resources :academy_amenities, only: %i[create destroy], controller: "academy_amenities"
+        resources :passes, only: %i[create update destroy]
       end
 
       resources :amenities, only: %i[index]
