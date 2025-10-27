@@ -3,6 +3,11 @@
 RSpec.describe AcademySerializer, type: :serializer do
   let(:user) { create(:user, :owner, firstname: 'Gym', lastname: 'Owner', email: 'email@email.com', username: 'gym_owner') }
   let!(:academy) { create(:academy, name: 'Test Academy', payout_info: 'my-secret-paypal-email', user: user) }
+  let!(:amenity1) { create(:amenity, name: 'Showers') }
+  let!(:pass1) { create(:pass, :day_pass, academy: academy, name: 'Day Pass') }
+  let!(:pass2) { create(:pass, :punch_card, academy: academy, name: '10 Class Card') }
+
+  before { academy.amenities << amenity1 }
 
   let(:json) { described_class.new(academy).as_json.deep_symbolize_keys }
 
@@ -10,7 +15,7 @@ RSpec.describe AcademySerializer, type: :serializer do
     [
       :id, :user_id, :name, :email, :phone_number, :website, :description,
       :street_address, :city, :state_province, :postal_code, :country,
-      :latitude, :longitude, :created_at, :updated_at
+      :latitude, :longitude, :created_at, :updated_at, :amenities, :passes
     ]
   end
 
@@ -30,5 +35,20 @@ RSpec.describe AcademySerializer, type: :serializer do
 
   it 'does NOT include the sensitive payout_info' do
     expect(json.keys).not_to include(:payout_info)
+  end
+
+  it 'includes associated amenities' do
+    expect(json[:amenities]).to be_an(Array)
+    expect(json[:amenities].count).to eq(1)
+    expect(json[:amenities].first[:id]).to eq(amenity1.id)
+    expect(json[:amenities].first[:name]).to eq('Showers')
+  end
+
+  it 'includes associated passes' do
+    expect(json[:passes]).to be_an(Array)
+    expect(json[:passes].count).to eq(2)
+    pass_names = json[:passes].map { |p| p[:name] }
+    expect(pass_names).to contain_exactly('Day Pass', '10 Class Card')
+    expect(json[:passes].first[:id]).to eq(pass1.id) # Check one pass ID for structure
   end
 end

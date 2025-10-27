@@ -153,6 +153,27 @@ RSpec.describe Api::V1::AcademiesController, type: :controller do
 
     let!(:academy) { create(:academy, user: owner_user) }
 
+    let(:mock_serializer) { instance_double(AcademySerializer) }
+    let(:expected_hash) { { id: academy.id, name: academy.name } }
+
+    before do
+      allow(AcademySerializer).to receive(:new).with(an_instance_of(Academy)).and_return(mock_serializer)
+      allow(mock_serializer).to receive(:as_json).and_return(expected_hash.to_json)
+    end
+
+    context 'when requesting a valid academy' do
+      it 'returns an :ok (200) status' do
+        do_action
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'returns the correct academy JSON via the serializer' do
+        do_action
+        expect(AcademySerializer).to have_received(:new).with(an_instance_of(Academy))
+        expect(response.body).to eq(expected_hash.to_json)
+      end
+    end
+
     context 'when authenticated as the academy owner' do
       before { request.headers.merge!(owner_headers) }
 

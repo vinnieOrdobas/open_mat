@@ -18,9 +18,6 @@ class AcademySerializer < ApplicationSerializer
              :created_at,
              :updated_at
 
-  # As we discussed, we can add associations here later
-  # when we need them, e.g.:
-  #
-  # has_many :amenities
-  # has_many :passes
+  has_many :amenities
+  has_many :passes
 end

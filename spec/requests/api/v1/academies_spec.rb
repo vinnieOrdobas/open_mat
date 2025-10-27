@@ -92,4 +92,58 @@ RSpec.describe 'Api::V1::Academies', type: :request do
       end
     end
   end
+
+  describe 'GET /api/v1/academies/:id (Show)' do
+    let!(:owner) { create(:user, :owner) }
+    let!(:academy) { create(:academy, user: owner, name: 'Detailed Academy') }
+    let!(:amenity) { create(:amenity, name: 'Mats') }
+    let!(:pass) { create(:pass, academy: academy, name: 'Single Class') }
+
+    before do
+      academy.amenities << amenity
+    end
+
+    let(:json_response) { JSON.parse(response.body).deep_symbolize_keys }
+
+    context 'when requesting a valid academy ID' do
+      before do
+        get "/api/v1/academies/#{academy.id}"
+      end
+
+      it 'returns an :ok (200) status' do
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'returns the correct academy details' do
+        expect(json_response[:id]).to eq(academy.id)
+        expect(json_response[:name]).to eq('Detailed Academy')
+      end
+
+      it 'includes the associated amenities' do
+        expect(json_response[:amenities]).to be_an(Array)
+        expect(json_response[:amenities].count).to eq(1)
+        expect(json_response[:amenities].first[:name]).to eq('Mats')
+      end
+
+      it 'includes the associated passes' do
+        expect(json_response[:passes]).to be_an(Array)
+        expect(json_response[:passes].count).to eq(1)
+        expect(json_response[:passes].first[:name]).to eq('Single Class')
+      end
+
+      it 'does NOT require authentication' do
+        expect(response).to have_http_status(:ok)
+      end
+    end
+
+    context 'when requesting an invalid academy ID' do
+      before do
+        get "/api/v1/academies/invalid-id"
+      end
+
+      it 'returns a :not_found (404) status' do
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+  end
 end
