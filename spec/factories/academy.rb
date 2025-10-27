@@ -2,8 +2,7 @@
 
 FactoryBot.define do
   factory :academy do
-    # This automatically creates an owner using the 'owner' trait!
-    association :user, factory: :user, trait: :owner
+    association :user
 
     sequence(:name) { |n| "Test Academy #{n}" }
     sequence(:email) { |n| "academy#{n}@example.com" }

@@ -5,15 +5,13 @@ FactoryBot.define do
     firstname { 'Test' }
     lastname { 'User' }
 
-    # Use a sequence to guarantee uniqueness
     sequence(:email) { |n| "user#{n}@example.com" }
     sequence(:username) { |n| "user#{n}" }
 
     password { 'password123' }
     password_confirmation { 'password123' }
-    role { 'student' } # Default role
+    role { 'student' }
 
-    # A 'trait' is a modifier, for convenience
     trait :owner do
       role { 'owner' }
     end
