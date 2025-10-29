@@ -19,7 +19,9 @@ Rails.application.routes.draw do
 
       resources :amenities, only: %i[index]
 
-      resources :orders, only: %i[create]
+      resources :orders, only: %i[create] do
+        resource :confirmation, only: %i[create], controller: "order_confirmations"
+      end
     end
   end
 
