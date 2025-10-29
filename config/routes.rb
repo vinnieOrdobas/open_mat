@@ -18,6 +18,8 @@ Rails.application.routes.draw do
       end
 
       resources :amenities, only: %i[index]
+
+      resources :orders, only: %i[create]
     end
   end
 

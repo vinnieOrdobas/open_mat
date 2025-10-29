@@ -54,16 +54,18 @@ RSpec.describe 'Api::V1::Academy Management Workflow', type: :request do
     end
 
     context 'when authenticated as a different owner' do
-      it 'returns unauthorized' do
+      it 'returns :ok (200) because the endpoint is public' do
         get "/api/v1/academies/#{academy.id}", headers: other_owner_headers
-        expect(response).to have_http_status(:unauthorized)
+        expect(response).to have_http_status(:ok)
+        expect(json_response[:id]).to eq(academy.id)
       end
     end
 
     context 'when not authenticated' do
-      it 'returns unauthorized' do
+      it 'returns :ok (200) because the endpoint is public' do
         get "/api/v1/academies/#{academy.id}", headers: no_auth_headers
-        expect(response).to have_http_status(:unauthorized)
+        expect(response).to have_http_status(:ok)
+        expect(json_response[:id]).to eq(academy.id)
       end
     end
   end

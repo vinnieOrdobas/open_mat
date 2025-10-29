@@ -15,8 +15,10 @@ class Order < ApplicationRecord
 
   # --- Enums ---
   enum status: {
-    pending: "pending",     # Cart created, waiting for payment
-    completed: "completed", # Payment successful
-    failed: "failed"        # Payment failed
+    pending_approval: "pending_approval",
+    approved: "approved",
+    rejected: "rejected",
+    completed: "completed",
+    payment_failed: "payment_failed"
   }
 end
