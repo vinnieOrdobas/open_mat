@@ -1,121 +1,95 @@
-🚀 Epic 5: Class Schedules & Booking
+🚀 Epic 5 (Revised): Class Schedules & Booking
 
-Goal: To allow (1) Owners to create and manage their weekly class schedules, and (2) Students to view those schedules and book a spot in a specific class, validating that they have a valid pass.
+Goal: To allow owners to manage their class schedules and students to book a spot, redeeming their StudentPass in the process.
 
-Dependencies: This epic requires a user to be authenticated (Epic 1), academies to exist (Epic 2), and a student to have a completed order (Epic 4).
+Dependencies: Requires a student to have an active StudentPass (created in Epic 4).
 
 📖 User Stories
 
-Owner - Manage Schedule: As a gym owner, I want to add, view, and delete repeating weekly class definitions for my academy (e.g., "Monday 7pm Gi," "Tuesday 6pm No-Gi").
+Owner - Manage Schedule: (Same as before)
 
-Student - View Schedule: As a student, I want to view the weekly class schedule for a specific academy so I can see what's available.
+Student - View Schedule: (Same as before)
 
-Student - Book Class: As a logged-in student, I want to book a spot in a specific class. The system must verify that I have a valid, paid-for pass for that academy.
+Student - Book Class: (Revised) As a logged-in student, I want to book a class by redeeming an active, valid StudentPass from my "wallet".
 
 📝 Tasks (Sprint Plan)
 
 Story 1: Owner - Manage Schedule
 
-Task 1 (Migration): Create class_schedules table.
+Task 1 (Migration): Create class_schedules table (academy_id, title, day_of_week, start_time, end_time).
 
-academy_id (references academies, null: false)
-
-title (string, e.g., "All Levels Gi", null: false)
-
-day_of_week (integer, null: false - 0 for Sunday, 1 for Monday, etc.)
-
-start_time (time, null: false)
-
-end_time (time, null: false)
-
-Task 2 (Model): Create ClassSchedule model.
-
-Add associations: belongs_to :academy.
-
-Add validations (e.g., title present, day_of_week between 0-6, end_time after start_time).
+Task 2 (Model): Create ClassSchedule model with associations & validations.
 
 Task 3 (Serializer): Create Api::V1::ClassScheduleSerializer.
 
-Task 4 (Routes): Add routes for owners to manage schedules:
+Task 4 (Routes):
 
-POST /api/v1/academies/:academy_id/class_schedules (to class_schedules#create)
+POST /api/v1/academies/:academy_id/class_schedules
 
-DELETE /api/v1/class_schedules/:id (to class_schedules#destroy)
+DELETE /api/v1/class_schedules/:id
 
-Task 5 (Controller): Create Api::V1::ClassSchedulesController (create, destroy).
+Task 5 (Controller): Create Api::V1::ClassSchedulesController (create, destroy) with owner authorization.
 
-Must be protected by authenticate_request!.
-
-Must find the academy and authorize_academy_owner!.
-
-Task 6 (Specs): Write specs for ClassSchedule model, ClassScheduleSerializer, and ClassSchedulesController (create/destroy actions).
+Task 6 (Specs): Write all specs.
 
 Story 2: Student - View Schedule
 
-Task 7 (Route): Add public route to list schedules for an academy:
+Task 7 (Route): GET /api/v1/academies/:academy_id/class_schedules
 
-GET /api/v1/academies/:academy_id/class_schedules (to class_schedules#index)
+Task 8 (Controller): Implement index action in ClassSchedulesController (public).
 
-Task 8 (Controller): Implement index action in Api::V1::ClassSchedulesController.
+Task 9 (Specs): Write specs for index action.
 
-This action must be public (skip authenticate_request!).
-
-It should find the academy and render all its class_schedules.
-
-Task 9 (Specs): Add specs for the index action to ClassSchedulesController (check for public access, correct list).
-
-Story 3: Student - Book Class
+Story 3: Student - Book Class (Revised Logic)
 
 Task 10 (Migration): Create bookings table.
 
-user_id (references users, null: false)
+user_id (references users)
 
-class_schedule_id (references class_schedules, null: false)
+class_schedule_id (references class_schedules)
 
-Note: For the prototype, we'll book the schedule. A real app might book a specific date.
+student_pass_id (references student_passes - NEW: tracks which pass was used)
 
 Task 11 (Model): Create Booking model.
 
-Add associations: belongs_to :user, belongs_to :class_schedule.
+Add associations: belongs_to :user, belongs_to :class_schedule, belongs_to :student_pass.
 
-Add validation: validates :user_id, uniqueness: { scope: :class_schedule_id, message: "has already booked this class" }.
+Add validations (e.g., uniqueness: { scope: ... }).
 
 Task 12 (Serializer): Create Api::V1::BookingSerializer.
 
-Task 13 (Route): Add route for a student to create a booking:
+Task 13 (Route): POST /api/v1/class_schedules/:class_schedule_id/bookings
 
-POST /api/v1/class_schedules/:class_schedule_id/bookings (to bookings#create)
-
-Task 14 (Service): Create Bookings::CreateBooking service.
+Task 14 (Service - REVISED): Create Bookings::CreateBooking service.
 
 Input: user, class_schedule.
 
-Logic:
+New Logic:
 
-Check for double booking.
+Find a valid StudentPass for this user & academy (StudentPass.find_by(user: user, academy_id: class_schedule.academy_id, status: 'active')).
 
-Validate Pass: Check if this user has any Order that is completed AND contains an OrderLineItem where the pass.academy_id matches the class_schedule.academy_id.
+If no pass, return error: "No active pass found."
 
-If no valid pass, return error.
+Check pass validity:
 
-If valid pass, create the Booking.
+If time-based (expires_at), check if expires_at > Time.current.
+
+If credit-based (credits_remaining), check if credits_remaining > 0.
+
+If invalid (expired/depleted), set status to expired/depleted and return error.
+
+Redeem (in a transaction):
+
+Create the Booking, linking it to the student_pass.id.
+
+If credit-based, student_pass.decrement!(:credits_remaining).
+
+If credits_remaining == 0, set status = 'depleted'.
+
+If it was a single pass, set status = 'depleted'.
 
 Task 15 (Controller): Create Api::V1::BookingsController (create).
 
-Must be protected by authenticate_request!.
+Task 16 (Specs): Write all specs for the new/revised logic.
 
-Must load the ClassSchedule.
-
-Calls the Bookings::CreateBooking service.
-
-Task 16 (Specs): Write specs for Booking model, BookingSerializer, Bookings::CreateBooking service, and BookingsController.
-
-Task 17 (E2E Test): Create spec/requests/api/v1/booking_spec.rb to test the full flow:
-
-Owner creates schedule.
-
-Student (with no pass) tries to book -> Fails.
-
-Student (with completed order) tries to book -> Succeeds.
-
-Student tries to book again -> Fails (double booking).
+Task 17 (E2E Test): Create spec/requests/api/v1/booking_spec.rb to test the full, correct booking flow.

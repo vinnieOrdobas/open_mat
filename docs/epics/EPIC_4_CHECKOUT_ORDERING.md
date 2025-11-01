@@ -1,87 +1,101 @@
-🚀 Epic 4: Checkout & Ordering
+🚀 Epic 4 (Revised): Checkout, Approval & Pass Activation
 
-Goal: To allow a logged-in student (current_user) to select a Pass from an academy's profile, initiate a checkout process, and complete a simulated purchase. This results in the creation of an Order, OrderLineItem(s), and a mock Payment record.
+Goal: To allow a student to create an order, an owner to approve the line items, and the student to confirm payment. Upon successful payment, the system activates the purchased passes by creating StudentPass records.
 
-Dependencies: Requires a logged-in student user (Epic 1) and existing academies with passes (Epics 2 & 3).
+Dependencies: Epics 1, 2, 3.
 
 📖 User Stories
 
-Initiate Checkout: As a logged-in student, I want to select one or more passes from an academy and initiate a checkout process, creating a pending Order.
+Student - Initiate Checkout: As a student, I want to create an order with passes from multiple academies. The order is awaiting_approvals.
 
-Confirm Order (Simulated Payment): As a logged-in student, I want to "confirm" my pending order, which simulates a successful payment and updates the Order and Payment status.
+Owner - Manage Order: As an owner, I want to view my pending OrderLineItems and approve or reject them.
 
-View Order History: As a logged-in student, I want to view a list of my past orders so I can track my purchases.
+Student - Confirm & Activate: As a student, once all my line items are approved, I want to confirm my order, simulate payment, and receive my usable "Student Passes".
+
+Student - View History: As a student, I want to view my Order history.
 
 📝 Tasks (Sprint Plan)
 
-Story 1: Initiate Checkout (Create Pending Order)
+Story 1: Student Initiates Checkout
 
-Task 1 (Serializers): Create Api::V1::OrderSerializer, Api::V1::OrderLineItemSerializer.
+Task 1 (Migration): Create order_line_items status column (e.g., pending_approval, approved, rejected).
 
-Task 2 (Route): Add POST /api/v1/orders route pointing to Api::V1::OrdersController#create.
+Task 2 (Models): Update Order (status: awaiting_approvals, etc.) & OrderLineItem (add status enum) & Academy (add has_many :order_line_items, through: :passes).
 
-Task 3 (Service): Create Orders::CreateOrder service (we sketched this earlier). It must:
+Task 3 (Service): Refactor Orders::CreateOrder service to allow multi-academy carts and create OrderLineItems with pending_approval status.
 
-Take current_user and cart_items (e.g., [{ pass_id: 1, quantity: 1 }, ...]) as input.
+Task 4 (Controller/Specs): Update OrdersController#create and its specs to align with the refactored service.
 
-Create a pending Order record.
+(Status: ✅ DONE. We completed these tasks.)
 
-Create associated OrderLineItem records, capturing price_at_purchase_cents.
+Story 2: Owner Manages Order
 
-Calculate and save the total_price_cents on the Order.
+Task 5 (Routes):
 
-Return a success/failure hash.
+GET /api/v1/academies/:academy_id/order_line_items (to academy_order_line_items#index)
 
-Task 4 (Controller): Create Api::V1::OrdersController.
+PATCH /api/v1/order_line_items/:id (to order_line_items#update)
 
-Protect with authenticate_request!.
+Task 6 (Controller): Create Api::V1::AcademyOrderLineItemsController (index action for owners to list their items).
 
-Implement the create action, calling the Orders::CreateOrder service.
+Task 7 (Service): Create OrderLineItems::UpdateStatus service (logic for approve/reject transitions).
 
-Task 5 (Tests): Write specs for serializers, Orders::CreateOrder service, and OrdersController#create.
+Task 8 (Controller): Create Api::V1::OrderLineItemsController (update action for owners to approve/reject).
 
-Story 2: Confirm Order (Simulated Payment)
+Task 9 (Specs): Write all specs for new controllers and service.
 
-Task 6 (Serializer): Create Api::V1::PaymentSerializer.
+(Status: ✅ DONE. We completed these tasks.)
 
-Task 7 (Route): Add POST /api/v1/orders/:order_id/confirm route pointing to a new Api::V1::OrderConfirmationsController#create (or similar).
+Story 3: Student Confirms & Activates (Pass Activation)
 
-Task 8 (Service): Create Payments::ProcessMockPayment service. It must:
+Task 10 (Migration - NEW): Create student_passes table:
 
-Take an Order as input.
+user_id (references users)
 
-Check if the order is pending.
+pass_id (references passes - the "template")
 
-Create a Payment record associated with the order (status: succeeded, processor: 'mock', processor_id: 'mock_#{SecureRandom.hex}').
+order_line_item_id (references order_line_items - the purchase record)
 
-Update the associated Order status to completed.
+academy_id (references academies - for easy lookup)
 
-Return a success/failure hash.
+status (string, enum: active, expired, depleted)
 
-Task 9 (Controller): Create Api::V1::OrderConfirmationsController.
+expires_at (datetime, null: true - for time-based passes)
 
-Protect with authenticate_request!.
+credits_remaining (integer, null: true - for credit-based passes)
 
-Load the Order specified by :order_id.
+Task 11 (Model - NEW): Create StudentPass model with associations and status enum.
 
-Authorize that current_user owns the order.
+Task 12 (Factory - NEW): Create student_pass factory.
 
-Call the Payments::ProcessMockPayment service.
+Task 13 (Serializer - NEW): Create Api::V1::StudentPassSerializer.
 
-Task 10 (Tests): Write specs for PaymentSerializer, Payments::ProcessMockPayment service, and OrderConfirmationsController#create.
+Task 14 (Service - NEW): Create Passes::ActivatePasses service.
 
-Story 3: View Order History
+Input: order_line_item.
 
-Task 11 (Route): Add GET /api/v1/orders route pointing back to Api::V1::OrdersController#index.
+Logic: Creates a StudentPass, sets expires_at or credits_remaining based on line_item.pass.pass_type.
 
-Task 12 (Controller Action): Implement the index action in Api::V1::OrdersController.
+Task 15 (Service - REVISED): Refactor Payments::ProcessMockPayment service.
 
-Protect with authenticate_request!.
+New Logic: Must check that all order.order_line_items are approved.
 
-Fetch only the current_user's orders (current_user.orders).
+On success, after creating the Payment, it must loop through each order_line_item and call the Passes::ActivatePasses service for it.
 
-Render the orders using OrderSerializer.
+Task 16 (Specs - REVISED): Update specs for ProcessMockPayment and write new specs for ActivatePasses.
 
-Task 13 (Tests): Write specs for OrdersController#index.
+Task 17 (Controller): Create Api::V1::OrderConfirmationsController (create action).
 
-Task 14 (E2E Test): Write a request spec (spec/requests/api/v1/ordering_spec.rb) covering the full flow: create order -> confirm order -> view order history.
+Task 18 (Specs): Write specs for OrderConfirmationsController.
+
+Story 4: Student Views Order History
+
+Task 19 (Route): Add GET /api/v1/orders (to orders#index).
+
+Task 20 (Controller): Implement OrdersController#index (fetches current_user.orders).
+
+Task 21 (Specs): Write specs for OrdersController#index.
+
+Story 5: E2E Test
+
+Task 22 (E2E Test): Create spec/requests/api/v1/ordering_spec.rb to test the full, revised flow (Student create -> Owner approve -> Student confirm -> StudentPass is created -> Student views history).
