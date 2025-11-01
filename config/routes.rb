@@ -23,7 +23,7 @@ Rails.application.routes.draw do
 
       resources :order_line_items, only: %i[update], controller: "order_line_items"
 
-      resources :orders, only: %i[create] do
+      resources :orders, only: %i[create index] do
         resource :confirmation, only: %i[create], controller: "order_confirmations"
       end
     end

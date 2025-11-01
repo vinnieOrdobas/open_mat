@@ -3,16 +3,19 @@
 class Api::V1::OrdersController < Api::V1::ApplicationController
   before_action :authenticate_request!
 
-  # POST /api/v1/orders
+  def index
+    @orders = current_user.orders.order(created_at: :desc)
+
+    render json: serialize_orders(@orders), status: :ok
+  end
+
   def create
     result = Orders::CreateOrder.new(user: current_user, cart_items: order_params[:cart_items]).perform
 
     return render json: { errors: result[:errors] }, status: :bad_request unless result[:success]
 
-    render json: serialize_order(result[:order]), status: :created
+    render json: serialize_orders(result[:order]), status: :created
   end
-
-  # We will add the 'index' action here later for Story 3
 
   private
 
@@ -20,7 +23,9 @@ class Api::V1::OrdersController < Api::V1::ApplicationController
     params.require(:order).permit(cart_items: [ :pass_id, :quantity ])
   end
 
-  def serialize_order(order)
-    OrderSerializer.new(order).as_json
+  def serialize_orders(orders)
+    return OrderSerializer.new(orders).as_json if orders.is_a?(Order)
+
+    orders.map { |o| OrderSerializer.new(o).as_json }
   end
 end
