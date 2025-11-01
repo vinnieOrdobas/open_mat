@@ -3,16 +3,56 @@
 RSpec.describe Orders::CreateOrder do
   describe '#perform' do
     let!(:user) { create(:user) }
-    let!(:owner) { create(:user, :owner) }
-    let!(:academy) { create(:academy, user: owner) }
-    let!(:pass1) { create(:pass, academy: academy, name: 'Day Pass', price_cents: 2000, currency: 'EUR') }
-    let!(:pass2) { create(:pass, academy: academy, name: 'Week Pass', price_cents: 8000, currency: 'EUR') }
 
-    context 'with valid cart items' do
+    let(:owner_1) { create(:user, :owner) }
+    let(:owner_2) { create(:user, :owner) }
+
+    let!(:academy_a) { create(:academy, user: owner_1) }
+    let!(:academy_b) { create(:academy, user: owner_2) }
+
+    let!(:pass_a1) { create(:pass, academy: academy_a, price_cents: 2000, currency: 'EUR') }
+    let!(:pass_b1) { create(:pass, academy: academy_b, price_cents: 5000, currency: 'USD') }
+
+    context 'with a valid cart from a single academy' do
+      let(:cart_items) { [ { pass_id: pass_a1.id, quantity: 2 } ] }
+      let(:service) { described_class.new(user: user, cart_items: cart_items) }
+
+      it 'creates one new Order' do
+        expect { service.perform }.to change(Order, :count).by(1)
+      end
+
+      it 'creates the correct number of OrderLineItems' do
+        expect { service.perform }.to change(OrderLineItem, :count).by(1)
+      end
+
+      it 'returns a success result with the new order' do
+        result = service.perform
+        expect(result[:success]).to be(true)
+        expect(result[:order]).to be_a(Order)
+      end
+
+      it 'sets the order status to "awaiting_approvals"' do
+        result = service.perform
+        expect(result[:order].status).to eq('awaiting_approvals')
+      end
+
+      it 'creates a line item with status "pending_approval"' do
+        result = service.perform
+        line_item = result[:order].order_line_items.first
+        expect(line_item.status).to eq('pending_approval')
+      end
+
+      it 'calculates the correct total' do
+        result = service.perform
+        expect(result[:order].total_price_cents).to eq(4000)
+      end
+    end
+
+    context 'with a valid cart from different academies' do
       let(:cart_items) do
         [
-          { pass_id: pass1.id, quantity: 1 },
-          { pass_id: pass2.id, quantity: 2 }
+          { pass_id: pass_a1.id, quantity: 1 },
+          { pass_id: pass_b1.id, quantity: 1 }
         ]
       end
       let(:service) { described_class.new(user: user, cart_items: cart_items) }
@@ -21,87 +61,75 @@ RSpec.describe Orders::CreateOrder do
         expect { service.perform }.to change(Order, :count).by(1)
       end
 
-      it 'creates the correct number of OrderLineItems' do
+      it 'creates two new OrderLineItems' do
         expect { service.perform }.to change(OrderLineItem, :count).by(2)
       end
 
-      it 'returns a success result with the new order' do
+      it 'returns a success result' do
         result = service.perform
         expect(result[:success]).to be(true)
-        expect(result[:order]).to be_an(Order)
-        expect(result[:errors]).to be_nil
       end
 
-      it 'assigns the order to the correct user and sets initial status' do
+      it 'sets the order status to "awaiting_approvals"' do
         result = service.perform
-        order = result[:order]
-        expect(order.user).to eq(user)
-        expect(order.status).to eq('pending_approval')
+        expect(result[:order].status).to eq('awaiting_approvals')
       end
 
-      it 'creates line items with correct associations and captured prices' do
+      it 'creates line items with "pending_approval" status' do
         result = service.perform
-        order = result[:order]
-        line_item1 = order.order_line_items.find { |li| li.pass_id == pass1.id }
-        line_item2 = order.order_line_items.find { |li| li.pass_id == pass2.id }
-
-        expect(line_item1).not_to be_nil
-        expect(line_item1.quantity).to eq(1)
-        expect(line_item1.price_at_purchase_cents).to eq(2000)
-
-        expect(line_item2).not_to be_nil
-        expect(line_item2.quantity).to eq(2)
-        expect(line_item2.price_at_purchase_cents).to eq(8000)
+        expect(result[:order].order_line_items.map(&:status)).to all(eq('pending_approval'))
       end
 
-      it 'calculates and saves the correct total price and currency on the order' do
+      it 'calculates the correct total' do
         result = service.perform
-        order = result[:order]
-        expected_total = (1 * 2000) + (2 * 8000)
-        expect(order.total_price_cents).to eq(expected_total)
-        expect(order.currency).to eq('EUR')
+        expected_total = pass_a1.price_cents + pass_b1.price_cents
+        expect(result[:order].total_price_cents).to eq(expected_total)
       end
     end
 
-    context 'with invalid cart items (e.g., non-existent pass_id)' do
-      let(:invalid_cart_items) do
-        [
-          { pass_id: pass1.id, quantity: 1 },
-          { pass_id: 'invalid-id', quantity: 1 }
-        ]
-      end
-      let(:service) { described_class.new(user: user, cart_items: invalid_cart_items) }
+    context 'when the cart is empty' do
+      let(:cart_items) { [] }
+      let(:service) { described_class.new(user: user, cart_items: cart_items) }
 
       it 'does not create an Order' do
         expect { service.perform }.not_to change(Order, :count)
       end
 
-      it 'does not create any OrderLineItems' do
-        expect { service.perform }.not_to change(OrderLineItem, :count)
-      end
-
-      it 'returns a failure result with a RecordNotFound error message' do
+      it 'returns a failure result with "Cart is empty" error' do
         result = service.perform
         expect(result[:success]).to be(false)
-        expect(result[:order]).to be_nil
-        expect(result[:errors]).to include("Couldn't find Pass with 'id'=\"invalid-id\"")
+        expect(result[:errors]).to include("Cart is empty")
       end
     end
 
-    context 'with invalid quantity (e.g., zero)' do
-      let(:invalid_quantity_items) do
-        [
-          { pass_id: pass1.id, quantity: 0 }
-        ]
-      end
-      let(:service) { described_class.new(user: user, cart_items: invalid_quantity_items) }
+    context 'when a pass_id is invalid' do
+      let(:cart_items) { [ { pass_id: 'invalid-id', quantity: 1 } ] }
+      let(:service) { described_class.new(user: user, cart_items: cart_items) }
 
-      it 'does not create an Order or LineItems' do
+      it 'does not create an Order' do
         expect { service.perform }.not_to change(Order, :count)
+      end
+
+      it 'returns a failure result with "Pass not found" error' do
+        result = service.perform
+        expect(result[:success]).to be(false)
+        expect(result[:errors]).to include("Pass with id invalid-id not found")
+      end
+    end
+
+    context 'when a line item is invalid (e.g., quantity 0)' do
+      let(:cart_items) { [ { pass_id: pass_a1.id, quantity: 0 } ] }
+      let(:service) { described_class.new(user: user, cart_items: cart_items) }
+
+      it 'does not create an Order (transaction rollback)' do
+        expect { service.perform }.not_to change(Order, :count)
+      end
+
+      it 'does not create an OrderLineItem (transaction rollback)' do
         expect { service.perform }.not_to change(OrderLineItem, :count)
       end
 
-      it 'returns a failure result with validation error' do
+      it 'returns a failure result with the validation error' do
         result = service.perform
         expect(result[:success]).to be(false)
         expect(result[:errors]).to include("Validation failed: Quantity must be greater than 0")

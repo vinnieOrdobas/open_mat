@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 class Order < ApplicationRecord
-  # --- Associations ---
   belongs_to :user
 
   has_many :order_line_items, dependent: :destroy
@@ -15,10 +14,9 @@ class Order < ApplicationRecord
 
   # --- Enums ---
   enum status: {
-    pending_approval: "pending_approval",
-    approved: "approved",
-    rejected: "rejected",
+    awaiting_approvals: "awaiting_approvals",
+    ready_for_payment: "ready_for_payment",
     completed: "completed",
-    payment_failed: "payment_failed"
+    rejected: "rejected"
   }
 end

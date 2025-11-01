@@ -6,5 +6,6 @@ FactoryBot.define do
     association :pass
     quantity { 1 }
     price_at_purchase_cents { pass&.price_cents || 1000 }
+    status { 'pending_approval' }
   end
 end

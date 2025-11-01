@@ -14,10 +14,9 @@ RSpec.describe Order, type: :model do
     it { should validate_numericality_of(:total_price_cents).is_greater_than_or_equal_to(0) }
 
     it { should define_enum_for(:status).with_values(
-      pending_approval: 'pending_approval',
-      approved: 'approved',
-      rejected: 'rejected',
-      completed: 'completed',
-      payment_failed: 'payment_failed').backed_by_column_of_type(:string) }
+      awaiting_approvals: "awaiting_approvals",
+      ready_for_payment: "ready_for_payment",
+      completed: "completed",
+      rejected: "rejected").backed_by_column_of_type(:string) }
   end
 end

@@ -3,7 +3,8 @@
 FactoryBot.define do
   factory :order do
     association :user
-    status { 'pending_approval' }
+
+    status { 'awaiting_approvals' }
     total_price_cents { 1000 }
     currency { 'USD' }
   end

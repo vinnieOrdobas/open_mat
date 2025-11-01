@@ -4,6 +4,7 @@ RSpec.describe Academy, type: :model do
   describe 'associations' do
     it { should belong_to(:user) }
     it { should have_many(:passes).dependent(:destroy) }
+    it { should have_many(:order_line_items).through(:passes) }
     it { should have_many(:academy_amenities).dependent(:destroy) }
     it { should have_many(:amenities).through(:academy_amenities) }
   end

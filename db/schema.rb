@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_25_184434) do
+ActiveRecord::Schema[7.2].define(version: 2025_10_30_171936) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -60,6 +60,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_25_184434) do
     t.integer "price_at_purchase_cents", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "status", default: "pending_approval", null: false
     t.index ["order_id"], name: "index_order_line_items_on_order_id"
     t.index ["pass_id"], name: "index_order_line_items_on_pass_id"
   end

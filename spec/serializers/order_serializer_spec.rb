@@ -8,7 +8,7 @@ RSpec.describe OrderSerializer, type: :serializer do
       :order,
       id: 1,
       user: user,
-      status: 'pending_approval',
+      status: 'awaiting_approvals',
       total_price_cents: 5000,
       currency: 'USD',
       created_at: Time.current,
@@ -35,7 +35,7 @@ RSpec.describe OrderSerializer, type: :serializer do
   it 'returns correct values for order attributes' do
     expect(json[:id]).to eq(order.id)
     expect(json[:user_id]).to eq(user.id)
-    expect(json[:status]).to eq('pending_approval')
+    expect(json[:status]).to eq('awaiting_approvals')
     expect(json[:total_price_cents]).to eq(5000)
   end
 
