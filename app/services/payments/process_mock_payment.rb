@@ -7,16 +7,13 @@ module Payments
     end
 
     def perform
-      return { success: false, errors: [ "Order is not pending approval (current status: #{@order.status})" ], payment: nil } unless @order.pending_approval?
+      return check_order_ready if check_order_ready
 
       payment = nil
 
       ActiveRecord::Base.transaction do
-        @order.update!(status: "approved")
-
-        # In a real app, this is where we'd call Stripe API
         payment = @order.create_payment!(
-          status: "succeeded", # Simulate success
+          status: "succeeded",
           amount_cents: @order.total_price_cents,
           currency: @order.currency,
           processor: "mock",
@@ -30,6 +27,16 @@ module Payments
 
     rescue ActiveRecord::RecordInvalid => e
       { success: false, errors: e.record.errors.full_messages, payment: nil }
+    end
+
+    private
+
+    def check_order_ready
+      return { success: false, errors: [ "Order is not awaiting approvals (status: #{@order.status})" ] } unless @order.awaiting_approvals?
+
+      return { success: false, errors: [ "Not all line items have been approved" ] } unless @order.order_line_items.all?(&:approved?)
+
+      nil
     end
   end
 end

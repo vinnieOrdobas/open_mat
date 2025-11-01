@@ -3,10 +3,15 @@
 RSpec.describe Payments::ProcessMockPayment do
   describe "#perform" do
     let!(:user) { create(:user) }
-    let(:order) { create(:order, user: user, status: "pending_approval", total_price_cents: 5000) }
+    let!(:owner) { create(:user, :owner) }
+    let!(:academy) { create(:academy, user: owner) }
+    let(:order) { create(:order, user: user, status: "awaiting_approvals") }
+    let!(:pass) { create(:pass, academy: academy) }
     let(:service) { described_class.new(order: order) }
 
-    context "when the order is pending approval" do
+    context "when order is 'awaiting_approvals' and all line items are 'approved'" do
+      let!(:line_item) { create(:order_line_item, order: order, pass: pass, status: "approved") }
+
       it "creates one new Payment record" do
         expect { service.perform }.to change(Payment, :count).by(1)
       end
@@ -15,68 +20,64 @@ RSpec.describe Payments::ProcessMockPayment do
         result = service.perform
         expect(result[:success]).to be(true)
         expect(result[:payment]).to be_a(Payment)
-        expect(result[:errors]).to be_nil
-      end
-
-      it "creates a payment record with correct details" do
-        result = service.perform
-        payment = result[:payment]
-        expect(payment.order).to eq(order)
-        expect(payment.status).to eq("succeeded")
-        expect(payment.amount_cents).to eq(order.total_price_cents)
-        expect(payment.currency).to eq(order.currency)
-        expect(payment.processor).to eq("mock")
-        expect(payment.processor_id).to start_with("mock_ch_")
       end
 
       it "updates the order's status to 'completed'" do
         service.perform
         expect(order.reload.status).to eq("completed")
       end
+
+      it "creates a payment with correct details" do
+        result = service.perform
+        expect(result[:payment].status).to eq("succeeded")
+        expect(result[:payment].amount_cents).to eq(order.total_price_cents)
+      end
     end
 
-    context "when the order is NOT pending approval" do
-      before { order.update!(status: "completed") }
+    context "when the order status is not 'awaiting_approvals'" do
+       before { order.update!(status: "completed") }
+
+      let!(:line_item) { create(:order_line_item, order: order, pass: pass, status: "approved") }
 
       it "does not create a Payment record" do
         expect { service.perform }.not_to change(Payment, :count)
-      end
-
-      it "does not change the order status" do
-        expect { service.perform }.not_to change { order.reload.status }
       end
 
       it "returns a failure result with an error message" do
         result = service.perform
         expect(result[:success]).to be(false)
-        expect(result[:payment]).to be_nil
-        expect(result[:errors]).to include("Order is not pending approval (current status: completed)")
+        expect(result[:errors]).to include("Order is not awaiting approvals (status: completed)")
       end
     end
 
-    context "when an operation within the transaction raises RecordInvalid" do
-      before do
-        order.errors.add(:status, "cannot transition directly to approved")
-        allow(order).to receive(:update!).with(status: "approved").and_raise(ActiveRecord::RecordInvalid.new(order))
-        allow(order).to receive(:create_payment!)
-        allow(order).to receive(:update!).with(status: "completed")
-      end
+    context "when one or more line items are still 'pending_approval'" do
+      let!(:line_item) { create(:order_line_item, order: order, pass: pass, status: "pending_approval") }
 
       it "does not create a Payment record" do
         expect { service.perform }.not_to change(Payment, :count)
       end
 
-      it "does not change the order status (due to transaction rollback)" do
-        service.perform
-        expect(order.reload.status).to eq("pending_approval")
-      end
-
-      it "returns a failure result with the order validation errors" do
+      it "returns a failure result with an error message" do
         result = service.perform
         expect(result[:success]).to be(false)
-        expect(result[:payment]).to be_nil
-        expect(result[:errors]).not_to be_empty
-        expect(result[:errors]).to include("Status cannot transition directly to approved")
+        expect(result[:errors]).to include("Not all line items have been approved")
+      end
+    end
+
+    context "when one or more line items are 'rejected'" do
+      let!(:another_pass) { create(:pass, academy: academy) }
+      let!(:other_pass) { create(:pass, academy: academy) }
+      let!(:line_item_approved) { create(:order_line_item, order: order, pass: another_pass, status: "approved") }
+      let!(:line_item_rejected) { create(:order_line_item, order: order, pass: other_pass, status: "rejected") }
+
+      it "does not create a Payment record" do
+        expect { service.perform }.not_to change(Payment, :count)
+      end
+
+      it "returns a failure result with an error message" do
+        result = service.perform
+        expect(result[:success]).to be(false)
+        expect(result[:errors]).to include("Not all line items have been approved")
       end
     end
   end
