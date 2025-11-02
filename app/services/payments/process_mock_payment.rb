@@ -21,12 +21,14 @@ module Payments
         )
 
         @order.update!(status: "completed")
+
+        active_order_passes(@order)
       end
 
       { success: true, payment: payment }
 
-    rescue ActiveRecord::RecordInvalid => e
-      { success: false, errors: e.record.errors.full_messages, payment: nil }
+    rescue StandardError => e
+      { success: false, errors: [ e.message ], payment: nil }
     end
 
     private
@@ -37,6 +39,16 @@ module Payments
       return { success: false, errors: [ "Not all line items have been approved" ] } unless @order.order_line_items.all?(&:approved?)
 
       nil
+    end
+
+    def active_order_passes(order)
+      order.order_line_items.each { |line_item| activate_pass(line_item) }
+    end
+
+    def activate_pass(line_item)
+      result = Passes::ActivatePasses.new(line_item: line_item).perform
+
+      raise "Failed to activate pass for line item #{line_item.id}" unless result[:success]
     end
   end
 end

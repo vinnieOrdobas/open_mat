@@ -7,10 +7,21 @@ RSpec.describe Payments::ProcessMockPayment do
     let!(:academy) { create(:academy, user: owner) }
     let(:order) { create(:order, user: user, status: "awaiting_approvals") }
     let!(:pass) { create(:pass, academy: academy) }
+    let!(:another_pass) { create(:pass, academy: academy) }
     let(:service) { described_class.new(order: order) }
 
+    let(:mock_activate_service) { instance_double(Passes::ActivatePasses) }
+    let(:success_result) { { success: true, student_pass: build_stubbed(:student_pass) } }
+    let(:failure_result) { { success: false, errors: [ "Activation failed" ] } }
+
+    before do
+      allow(Passes::ActivatePasses).to receive(:new).and_return(mock_activate_service)
+      allow(mock_activate_service).to receive(:perform).and_return(success_result)
+    end
+
     context "when order is 'awaiting_approvals' and all line items are 'approved'" do
-      let!(:line_item) { create(:order_line_item, order: order, pass: pass, status: "approved") }
+      let!(:line_item_1) { create(:order_line_item, order: order, pass: pass, status: "approved") }
+      let!(:line_item_2) { create(:order_line_item, order: order, pass: another_pass, status: "approved") }
 
       it "creates one new Payment record" do
         expect { service.perform }.to change(Payment, :count).by(1)
@@ -31,6 +42,13 @@ RSpec.describe Payments::ProcessMockPayment do
         result = service.perform
         expect(result[:payment].status).to eq("succeeded")
         expect(result[:payment].amount_cents).to eq(order.total_price_cents)
+      end
+
+      it "calls the ActivatePasses service for each line item" do
+        service.perform
+        expect(Passes::ActivatePasses).to have_received(:new).with(line_item: line_item_1)
+        expect(Passes::ActivatePasses).to have_received(:new).with(line_item: line_item_2)
+        expect(mock_activate_service).to have_received(:perform).twice
       end
     end
 
@@ -78,6 +96,29 @@ RSpec.describe Payments::ProcessMockPayment do
         result = service.perform
         expect(result[:success]).to be(false)
         expect(result[:errors]).to include("Not all line items have been approved")
+      end
+    end
+
+    context "when pass activation fails" do
+      let!(:line_item) { create(:order_line_item, order: order, pass: pass, status: "approved") }
+
+      before do
+        allow(mock_activate_service).to receive(:perform).and_return(failure_result)
+      end
+
+      it "does NOT create a Payment record (rolls back)" do
+        expect { service.perform }.not_to change(Payment, :count)
+      end
+
+      it "does NOT change the order status (rolls back)" do
+        service.perform
+        expect(order.reload.status).to eq("awaiting_approvals")
+      end
+
+      it "returns a failure result with an error" do
+        result = service.perform
+        expect(result[:success]).to be(false)
+        expect(result[:errors]).to include("Failed to activate pass for line item #{line_item.id}")
       end
     end
   end
