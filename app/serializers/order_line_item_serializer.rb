@@ -6,8 +6,8 @@ class OrderLineItemSerializer < ApplicationSerializer
              :pass_id,
              :quantity,
              :price_at_purchase_cents,
-             :status # <-- ADD THIS LINE
+             :status
 
   # Optional: Include details about the pass purchased
-  # belongs_to :pass, serializer: PassSerializer
+  belongs_to :pass, serializer: PassSerializer
 end

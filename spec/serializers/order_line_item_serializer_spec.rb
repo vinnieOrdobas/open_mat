@@ -16,7 +16,7 @@ RSpec.describe OrderLineItemSerializer, type: :serializer do
   end
 
   let(:json) { described_class.new(line_item).as_json.deep_symbolize_keys }
-  let(:expected_keys) { [ :id, :order_id, :pass_id, :quantity, :price_at_purchase_cents, :status ] }
+  let(:expected_keys) { [ :id, :order_id, :pass_id, :quantity, :price_at_purchase_cents, :status, :pass ] }
 
   it 'includes all expected keys' do
     expect(json.keys).to contain_exactly(*expected_keys)
@@ -28,6 +28,6 @@ RSpec.describe OrderLineItemSerializer, type: :serializer do
     expect(json[:pass_id]).to eq(pass.id)
     expect(json[:quantity]).to eq(2)
     expect(json[:price_at_purchase_cents]).to eq(pass.price_cents)
-    expect(json[:status]).to eq('pending_approval') # <-- ADD THIS ASSERTION
+    expect(json[:status]).to eq('pending_approval')
   end
 end
