@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_10_30_171936) do
+ActiveRecord::Schema[7.2].define(version: 2025_11_02_162833) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -101,6 +101,22 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_30_171936) do
     t.index ["order_id"], name: "index_payments_on_order_id"
   end
 
+  create_table "student_passes", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "pass_id", null: false
+    t.bigint "order_line_item_id", null: false
+    t.bigint "academy_id", null: false
+    t.string "status", default: "active", null: false
+    t.datetime "expires_at"
+    t.integer "credits_remaining"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["academy_id"], name: "index_student_passes_on_academy_id"
+    t.index ["order_line_item_id"], name: "index_student_passes_on_order_line_item_id"
+    t.index ["pass_id"], name: "index_student_passes_on_pass_id"
+    t.index ["user_id"], name: "index_student_passes_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "firstname", null: false
     t.string "lastname", null: false
@@ -126,4 +142,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_10_30_171936) do
   add_foreign_key "orders", "users"
   add_foreign_key "passes", "academies"
   add_foreign_key "payments", "orders"
+  add_foreign_key "student_passes", "academies"
+  add_foreign_key "student_passes", "order_line_items"
+  add_foreign_key "student_passes", "passes"
+  add_foreign_key "student_passes", "users"
 end
