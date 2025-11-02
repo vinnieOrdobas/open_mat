@@ -17,14 +17,12 @@ class Api::V1::OrderConfirmationsController < Api::V1::ApplicationController
 
   def set_order
     @order = Order.find_by(id: params[:order_id])
-
-    render json: { error: "Order not found" }, status: :not_found unless @order
+    render json: { error: 'Order not found' }, status: :not_found unless @order
   end
 
   def authorize_order_owner!
     return if @order.user_id == current_user.id
-
-    render json: { error: "Not Authorized" }, status: :unauthorized
+    render json: { error: 'Not Authorized' }, status: :unauthorized
   end
 
   def serialize_payment(payment)
