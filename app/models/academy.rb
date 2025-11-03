@@ -8,6 +8,7 @@ class Academy < ApplicationRecord
 
   has_many :academy_amenities, dependent: :destroy
   has_many :amenities, through: :academy_amenities
+  has_many :class_schedules, dependent: :destroy
 
   validates :name, presence: true
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
