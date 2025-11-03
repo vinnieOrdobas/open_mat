@@ -6,6 +6,8 @@ class StudentPass < ApplicationRecord
   belongs_to :order_line_item
   belongs_to :academy
 
+  has_many :bookings, dependent: :restrict_with_error
+
   enum status: {
     active: "active",
     expired: "expired",

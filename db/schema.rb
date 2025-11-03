@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_11_03_113507) do
+ActiveRecord::Schema[7.2].define(version: 2025_11_03_154558) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -51,6 +51,18 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_113507) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_amenities_on_name", unique: true
+  end
+
+  create_table "bookings", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "class_schedule_id", null: false
+    t.bigint "student_pass_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["class_schedule_id"], name: "index_bookings_on_class_schedule_id"
+    t.index ["student_pass_id"], name: "index_bookings_on_student_pass_id"
+    t.index ["user_id", "class_schedule_id"], name: "index_bookings_on_user_id_and_class_schedule_id", unique: true
+    t.index ["user_id"], name: "index_bookings_on_user_id"
   end
 
   create_table "class_schedules", force: :cascade do |t|
@@ -148,6 +160,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_113507) do
   add_foreign_key "academies", "users"
   add_foreign_key "academy_amenities", "academies"
   add_foreign_key "academy_amenities", "amenities"
+  add_foreign_key "bookings", "class_schedules"
+  add_foreign_key "bookings", "student_passes"
+  add_foreign_key "bookings", "users"
   add_foreign_key "class_schedules", "academies"
   add_foreign_key "order_line_items", "orders"
   add_foreign_key "order_line_items", "passes"

@@ -2,6 +2,8 @@
 
 class ClassSchedule < ApplicationRecord
   belongs_to :academy
+  has_many :bookings, dependent: :destroy
+  has_many :users, through: :bookings
 
   validates :title, presence: true
   validates :start_time, presence: true
