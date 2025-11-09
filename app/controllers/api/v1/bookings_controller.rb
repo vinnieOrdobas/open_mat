@@ -20,7 +20,7 @@ class Api::V1::BookingsController < Api::V1::ApplicationController
   def set_class_schedule
     @class_schedule = ClassSchedule.find_by(id: params[:class_schedule_id])
 
-    render json: { error: 'Class schedule not found for this academy' }, status: :not_found unless correct_academy?
+    render json: { error: "Class schedule not found for this academy" }, status: :not_found unless correct_academy?
   end
 
   def correct_academy?
