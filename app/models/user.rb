@@ -7,6 +7,7 @@ class User < ApplicationRecord
   has_many :academies, dependent: :restrict_with_error
   has_many :orders, dependent: :destroy
   has_many :bookings, dependent: :destroy
+  has_many :student_passes, dependent: :destroy
 
   validates :firstname, presence: true
   validates :lastname, presence: true
