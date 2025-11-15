@@ -1,7 +1,7 @@
 
 services:
   # 1. The PostgreSQL Database
-  - type: psql
+  - type: postgres
     name: openmat-db
     plan: free
     databaseName: openmat_production
@@ -25,7 +25,7 @@ services:
         value: production
       - key: DATABASE_URL
         fromService:
-          type: psql
+          type: postgres
           name: openmat-db
           property: connectionString
       - key: RAILS_MASTER_KEY
