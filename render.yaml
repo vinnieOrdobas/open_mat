@@ -1,11 +1,13 @@
+# This file tells Render how to build and run your services.
+
 services:
   # 1. The Rails API Web Service
   - type: web
     name: openmat-api
     runtime: ruby
     plan: free
-    
-    # What to do when you push to GitHub
+
+
     buildCommand: "bundle install"
     preDeployCommand: "bundle exec rails db:migrate"
 
@@ -30,4 +32,3 @@ databases:
     databaseName: openmat_production
     user: openmat_user
     postgresMajorVersion: 14
-  ```
