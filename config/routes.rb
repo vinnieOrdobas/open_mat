@@ -9,7 +9,8 @@ Rails.application.routes.draw do
       # User registration and authentication
       resources :users, only: %i[create]
       post :login, to: "sessions#create"
-      get :profile, to: "profile#show"
+
+      resource :profile, only: %i[show update], controller: "profile"
 
       # Academy Management
       resources :academies, only: %i[index create show update] do
