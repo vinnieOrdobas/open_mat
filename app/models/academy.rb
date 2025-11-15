@@ -16,4 +16,10 @@ class Academy < ApplicationRecord
   validates :street_address, presence: true
   validates :city, presence: true
   validates :country, presence: true
+
+  def average_rating
+    return if reviews.empty?
+
+    reviews.average(:rating).to_f.round(1)
+  end
 end

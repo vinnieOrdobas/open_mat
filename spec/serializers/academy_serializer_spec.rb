@@ -6,8 +6,16 @@ RSpec.describe AcademySerializer, type: :serializer do
   let!(:amenity1) { create(:amenity, name: 'Showers') }
   let!(:pass1) { create(:pass, :day_pass, academy: academy, name: 'Day Pass') }
   let!(:pass2) { create(:pass, :punch_card, academy: academy, name: '10 Class Card') }
+  let!(:student_1) { create(:user, :student) }
+  let!(:student_2) { create(:user, :student) }
+  let!(:review1) { create(:review, academy: academy, rating: 5, comment: 'Great place!', user: student_1) }
+  let!(:review2) { create(:review, academy: academy, rating: 4, comment: 'Good experience.', user: student_2) }
 
-  before { academy.amenities << amenity1 }
+  before do
+    academy.amenities << amenity1
+    review1
+    review2
+  end
 
   let(:json) { described_class.new(academy).as_json.deep_symbolize_keys }
 
@@ -15,7 +23,8 @@ RSpec.describe AcademySerializer, type: :serializer do
     [
       :id, :user_id, :name, :email, :phone_number, :website, :description,
       :street_address, :city, :state_province, :postal_code, :country,
-      :latitude, :longitude, :created_at, :updated_at, :amenities, :passes
+      :latitude, :longitude, :created_at, :updated_at, :amenities, :passes,
+      :reviews, :average_rating
     ]
   end
 
@@ -49,6 +58,17 @@ RSpec.describe AcademySerializer, type: :serializer do
     expect(json[:passes].count).to eq(2)
     pass_names = json[:passes].map { |p| p[:name] }
     expect(pass_names).to contain_exactly('Day Pass', '10 Class Card')
-    expect(json[:passes].first[:id]).to eq(pass1.id) # Check one pass ID for structure
+    expect(json[:passes].first[:id]).to eq(pass1.id)
+  end
+
+  it 'includes the calculated average_rating' do
+    expect(json[:average_rating]).to eq(4.5)
+  end
+
+  it 'includes the nested reviews' do
+    expect(json[:reviews]).to be_an(Array)
+    expect(json[:reviews].count).to eq(2)
+    expect(json[:reviews].first[:rating]).to eq(5)
+    expect(json[:reviews].last[:rating]).to eq(4)
   end
 end

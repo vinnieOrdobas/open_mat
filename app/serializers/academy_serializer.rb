@@ -16,8 +16,10 @@ class AcademySerializer < ApplicationSerializer
              :latitude,
              :longitude,
              :created_at,
-             :updated_at
+             :updated_at,
+             :average_rating
 
   has_many :amenities
   has_many :passes
+  has_many :reviews
 end

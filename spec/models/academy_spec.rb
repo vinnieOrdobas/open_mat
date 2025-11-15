@@ -23,4 +23,38 @@ RSpec.describe Academy, type: :model do
     it { should validate_uniqueness_of(:email) }
     it { should allow_value('test@example.com').for(:email) }
   end
+
+  describe '#average_rating' do
+    let(:owner) { create(:user, :owner) }
+    let!(:academy) { create(:academy, user: owner) }
+
+    context 'when there are reviews' do
+      before do
+        create(:review, academy: academy, rating: 5)
+        create(:review, academy: academy, rating: 3)
+      end
+
+      it 'returns the correct average' do
+        expect(academy.average_rating).to eq(4.0)
+      end
+    end
+
+    context 'when there are no reviews' do
+      it 'returns nil' do
+        expect(academy.average_rating).to be_nil
+      end
+    end
+
+    context 'when reviews require rounding' do
+      before do
+        create(:review, academy: academy, rating: 5)
+        create(:review, academy: academy, rating: 4)
+        create(:review, academy: academy, rating: 4)
+      end
+
+      it 'rounds to one decimal place' do
+        expect(academy.average_rating).to eq(4.3)
+      end
+    end
+  end
 end
