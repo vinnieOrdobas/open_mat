@@ -102,9 +102,7 @@ RSpec.describe Payments::ProcessMockPayment do
     context "when pass activation fails" do
       let!(:line_item) { create(:order_line_item, order: order, pass: pass, status: "approved") }
 
-      before do
-        allow(mock_activate_service).to receive(:perform).and_return(failure_result)
-      end
+      before { allow(mock_activate_service).to receive(:perform).and_return(failure_result) }
 
       it "does NOT create a Payment record (rolls back)" do
         expect { service.perform }.not_to change(Payment, :count)
