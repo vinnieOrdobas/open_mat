@@ -13,5 +13,7 @@ bin/rails assets:precompile
 bin/rails assets:clean
 
 # Run database migrations
-# As the doc notes, this is fine in the build command for the free tier.
 bin/rails db:migrate
+
+# Run the seed data task
+bin/rails db:seed
