@@ -8,8 +8,7 @@ services:
     plan: free
 
 
-    buildCommand: "bundle install"
-    preDeployCommand: "bundle exec rails db:migrate"
+    buildCommand: "./bin/render-build.sh"
 
     # How to start the app
     startCommand: "bundle exec puma -C config/puma.rb"
