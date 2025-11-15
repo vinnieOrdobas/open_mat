@@ -1,11 +1,17 @@
 # frozen_string_literal: true
 
 class Api::V1::ReviewsController < Api::V1::ApplicationController
-  before_action :authenticate_request!
+  before_action :authenticate_request!, except: %i[index]
 
-  before_action :set_academy, only: %i[create]
+  before_action :set_academy, only: %i[index create]
 
   before_action :set_review_and_authorize_author!, only: %i[update destroy]
+
+  def index
+    reviews = @academy.reviews.includes(:user)
+
+    render json: reviews.map { |review| serialize_review(review) }, status: :ok
+  end
 
   def create
     result = Reviews::CreateReview.new(

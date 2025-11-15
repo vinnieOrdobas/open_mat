@@ -5,11 +5,64 @@ RSpec.describe Api::V1::ReviewsController, type: :controller do
   let!(:other_student) { create(:user, role: 'student') } # For auth tests
   let!(:owner) { create(:user, :owner) }
   let!(:academy) { create(:academy, user: owner) }
+  let!(:other_academy) { create(:academy, user: owner) }
 
   let(:student_headers) { { 'Authorization' => "Bearer #{JsonWebToken.encode(user_id: student.id)}" } }
   let(:other_student_headers) { { 'Authorization' => "Bearer #{JsonWebToken.encode(user_id: other_student.id)}" } }
 
   let(:json_response) { JSON.parse(response.body).deep_symbolize_keys rescue {} }
+
+  # === GET #index (NEW) ===
+  describe 'GET #index' do
+    subject(:do_action) { get :index, params: { academy_id: academy.id } }
+
+    let!(:review1) { create(:review, user: student, academy: academy, created_at: 1.day.ago) }
+    let!(:review2) { create(:review, user: other_student, academy: academy, created_at: 2.days.ago) }
+
+    let!(:other_academy) { create(:academy, user: owner) }
+    let!(:other_review) { create(:review, user: student, academy: other_academy) }
+
+    context 'when the academy exists' do
+      it 'returns an :ok (200) status' do
+        do_action
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'is publicly accessible (does not require authentication)' do
+        get :index, params: { academy_id: academy.id }
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'returns only the reviews for the specified academy' do
+        do_action
+
+        parsed_response = JSON.parse(response.body).map { |o| o.deep_symbolize_keys }
+
+        expect(parsed_response).to be_an(Array)
+        expect(parsed_response.count).to eq(2)
+        review_ids = parsed_response.map { |r| r[:id] }
+        expect(review_ids).to contain_exactly(review1.id, review2.id)
+      end
+
+      it 'returns the reviews with nested user info (username)' do
+        do_action
+        parsed_response = JSON.parse(response.body).map { |o| o.deep_symbolize_keys }
+
+        expect(parsed_response.first[:id]).to eq(review1.id)
+        expect(parsed_response.first[:username]).to eq(student.username)
+        expect(parsed_response.last[:id]).to eq(review2.id)
+        expect(parsed_response.last[:username]).to eq(other_student.username)
+      end
+    end
+
+    context 'when the academy does not exist' do
+      it 'returns a :not_found (404) status' do
+        get :index, params: { academy_id: 'invalid-id' }
+        expect(response).to have_http_status(:not_found)
+        expect(json_response[:error]).to eq('Academy not found')
+      end
+    end
+  end
 
   describe 'POST #create' do
     subject(:do_action) { post :create, params: request_params }
@@ -82,7 +135,6 @@ RSpec.describe Api::V1::ReviewsController, type: :controller do
 
   describe 'PATCH #update' do
     let!(:review) { create(:review, user: student, academy: academy, rating: 3) }
-
     let(:update_params) { { review: { rating: 5, comment: 'Updated!' } } }
     let(:request_params) { { academy_id: academy.id, id: review.id, review: update_params[:review] } }
 

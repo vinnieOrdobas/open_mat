@@ -16,7 +16,7 @@ Rails.application.routes.draw do
       resources :academies, only: %i[index create show update] do
         resources :academy_amenities, only: %i[create destroy], controller: "academy_amenities", path: "amenities"
         resources :passes, only: %i[create update destroy]
-        resources :reviews, only: %i[create update destroy]
+        resources :reviews, only: %i[index create update destroy]
 
         resources :order_line_items, only: %i[index], controller: "academy_order_line_items"
         resources :class_schedules, only: %i[index create destroy] do
