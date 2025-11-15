@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_11_03_154558) do
+ActiveRecord::Schema[7.2].define(version: 2025_11_15_142254) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -124,6 +124,18 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_154558) do
     t.index ["order_id"], name: "index_payments_on_order_id"
   end
 
+  create_table "reviews", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "academy_id", null: false
+    t.integer "rating", null: false
+    t.text "comment"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["academy_id"], name: "index_reviews_on_academy_id"
+    t.index ["user_id", "academy_id"], name: "index_reviews_on_user_id_and_academy_id", unique: true
+    t.index ["user_id"], name: "index_reviews_on_user_id"
+  end
+
   create_table "student_passes", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.bigint "pass_id", null: false
@@ -169,6 +181,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_11_03_154558) do
   add_foreign_key "orders", "users"
   add_foreign_key "passes", "academies"
   add_foreign_key "payments", "orders"
+  add_foreign_key "reviews", "academies"
+  add_foreign_key "reviews", "users"
   add_foreign_key "student_passes", "academies"
   add_foreign_key "student_passes", "order_line_items"
   add_foreign_key "student_passes", "passes"
