@@ -1,0 +1,32 @@
+
+services:
+  # 1. The PostgreSQL Database
+  - type: psql
+    name: openmat-db
+    plan: free
+    databaseName: openmat_production
+    user: openmat_user
+    psqlVersion: 14 # Match the version you're using (e.g., 14)
+
+  # 2. The Rails API Web Service
+  - type: web
+    name: openmat-api
+    env: ruby
+    plan: free
+
+    build_command: "bundle install"
+
+    # How to start the app
+    start_command: "bundle exec puma -C config/puma.rb"
+
+    # Environment variables
+    envVars:
+      - key: RAILS_ENV
+        value: production
+      - key: DATABASE_URL
+        fromService:
+          type: psql
+          name: openmat-db
+          property: connectionString
+      - key: RAILS_MASTER_KEY
+        sync: false
