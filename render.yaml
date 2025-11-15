@@ -1,32 +1,37 @@
+# This file tells Render how to build and run your services.
+# It is based on the official Render Blueprint template.
 
 services:
-  # 1. The PostgreSQL Database
-  - type: postgres
-    name: openmat-db
-    plan: free
-    databaseName: openmat_production
-    user: openmat_user
-    psqlVersion: 14 # Match the version you're using (e.g., 14)
-
-  # 2. The Rails API Web Service
+  # 1. The Rails API Web Service
   - type: web
     name: openmat-api
-    env: ruby
+    runtime: ruby
     plan: free
-
-    build_command: "bundle install"
-
+    
+    # What to do when you push to GitHub
+    buildCommand: "bundle install"
+    
     # How to start the app
-    start_command: "bundle exec puma -C config/puma.rb"
+    startCommand: "bundle exec puma -C config/puma.rb"
 
     # Environment variables
     envVars:
       - key: RAILS_ENV
         value: production
       - key: DATABASE_URL
-        fromService:
-          type: postgres
-          name: openmat-db
+        # This links to the 'databases' block below
+        fromDatabase:
+          name: openmat-db # This must match the 'name' in the 'databases' block
           property: connectionString
       - key: RAILS_MASTER_KEY
+        # This will be set securely in the Render dashboard, not in code.
         sync: false
+
+# This top-level 'databases' block is the correct structure
+databases:
+  # 2. The PostgreSQL Database
+  - name: openmat-db # This name is referenced by the web service
+    plan: free
+    databaseName: openmat_production
+    user: openmat_user
+    postgresMajorVersion: 14 # Use 'postgresMajorVersion' as per Render docs
