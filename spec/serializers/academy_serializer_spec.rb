@@ -24,7 +24,7 @@ RSpec.describe AcademySerializer, type: :serializer do
       :id, :user_id, :name, :email, :phone_number, :website, :description,
       :street_address, :city, :state_province, :postal_code, :country,
       :latitude, :longitude, :created_at, :updated_at, :amenities, :passes,
-      :reviews, :average_rating
+      :reviews, :average_rating, :class_schedules
     ]
   end
 

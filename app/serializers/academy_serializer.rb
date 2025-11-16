@@ -22,4 +22,5 @@ class AcademySerializer < ApplicationSerializer
   has_many :amenities
   has_many :passes
   has_many :reviews
+  has_many :class_schedules
 end
