@@ -80,7 +80,7 @@ class Api::V1::AcademiesController < Api::V1::ApplicationController
   end
 
   def set_academy
-    @academy = Academy.find_by(id: params[:id])
+    @academy = Academy.includes(:amenities, :passes, :reviews, :class_schedules).find_by(id: params[:id])
     render json: { error: "Academy not found" }, status: :not_found unless @academy
   end
 

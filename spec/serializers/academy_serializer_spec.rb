@@ -10,11 +10,13 @@ RSpec.describe AcademySerializer, type: :serializer do
   let!(:student_2) { create(:user, :student) }
   let!(:review1) { create(:review, academy: academy, rating: 5, comment: 'Great place!', user: student_1) }
   let!(:review2) { create(:review, academy: academy, rating: 4, comment: 'Good experience.', user: student_2) }
+  let!(:class_schedule) { create(:class_schedule, academy: academy) }
 
   before do
     academy.amenities << amenity1
     review1
     review2
+    class_schedule
   end
 
   let(:json) { described_class.new(academy).as_json.deep_symbolize_keys }
@@ -70,5 +72,12 @@ RSpec.describe AcademySerializer, type: :serializer do
     expect(json[:reviews].count).to eq(2)
     expect(json[:reviews].first[:rating]).to eq(5)
     expect(json[:reviews].last[:rating]).to eq(4)
+  end
+
+  it 'includes the nested class schedules' do
+    expect(json[:class_schedules]).to be_an(Array)
+    expect(json[:class_schedules].count).to eq(1)
+    expect(json[:class_schedules].first[:id]).to eq(class_schedule.id)
+    expect(json[:class_schedules].first[:title]).to eq(class_schedule.title)
   end
 end
