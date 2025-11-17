@@ -11,7 +11,9 @@ class UserSerializer < ApplicationSerializer
              :created_at,
              :updated_at
 
-  # We could also add associations here later, like:
+  has_one :headshot, serializer: AttachmentSerializer
+  has_many :orders
+
+  # We can add this later for an owner-specific view
   # has_many :academies
-  # has_many :orders
 end

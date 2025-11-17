@@ -10,6 +10,7 @@ class Academy < ApplicationRecord
   has_many :amenities, through: :academy_amenities
   has_many :class_schedules, dependent: :destroy
   has_many :reviews, dependent: :destroy
+  has_many :attachments, as: :attachable, dependent: :destroy
 
   validates :name, presence: true
   validates :email, presence: true, uniqueness: true, format: { with: URI::MailTo::EMAIL_REGEXP }
@@ -21,5 +22,13 @@ class Academy < ApplicationRecord
     return if reviews.empty?
 
     reviews.average(:rating).to_f.round(1)
+  end
+
+  def logo
+    attachments.find { |a| a.kind == "logo" }
+  end
+
+  def photos
+    attachments.select { |a| a.kind == "photo" }
   end
 end

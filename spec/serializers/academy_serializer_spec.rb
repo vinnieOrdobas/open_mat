@@ -11,6 +11,8 @@ RSpec.describe AcademySerializer, type: :serializer do
   let!(:review1) { create(:review, academy: academy, rating: 5, comment: 'Great place!', user: student_1) }
   let!(:review2) { create(:review, academy: academy, rating: 4, comment: 'Good experience.', user: student_2) }
   let!(:class_schedule) { create(:class_schedule, academy: academy) }
+  let!(:logo) { create(:attachment, :logo, attachable: academy) }
+  let!(:photo_1) { create(:attachment, :photo, attachable: academy) }
 
   before do
     academy.amenities << amenity1
@@ -26,7 +28,7 @@ RSpec.describe AcademySerializer, type: :serializer do
       :id, :user_id, :name, :email, :phone_number, :website, :description,
       :street_address, :city, :state_province, :postal_code, :country,
       :latitude, :longitude, :created_at, :updated_at, :amenities, :passes,
-      :reviews, :average_rating, :class_schedules
+      :reviews, :average_rating, :class_schedules, :photos, :logo
     ]
   end
 
@@ -79,5 +81,18 @@ RSpec.describe AcademySerializer, type: :serializer do
     expect(json[:class_schedules].count).to eq(1)
     expect(json[:class_schedules].first[:id]).to eq(class_schedule.id)
     expect(json[:class_schedules].first[:title]).to eq(class_schedule.title)
+  end
+
+  it 'includes the logo attachment' do
+    expect(json[:logo]).to be_present
+    expect(json[:logo][:id]).to eq(logo.id)
+    expect(json[:logo][:kind]).to eq('logo')
+  end
+
+  it 'includes the photos attachments' do
+    expect(json[:photos]).to be_an(Array)
+    expect(json[:photos].count).to eq(1)
+    expect(json[:photos].first[:id]).to eq(photo_1.id)
+    expect(json[:photos].first[:kind]).to eq('photo')
   end
 end

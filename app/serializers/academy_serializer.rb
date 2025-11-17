@@ -23,4 +23,6 @@ class AcademySerializer < ApplicationSerializer
   has_many :passes
   has_many :reviews
   has_many :class_schedules
+  has_one :logo, serializer: AttachmentSerializer
+  has_many :photos, serializer: AttachmentSerializer
 end

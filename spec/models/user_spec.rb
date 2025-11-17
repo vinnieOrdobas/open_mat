@@ -4,6 +4,8 @@ RSpec.describe User, type: :model do
   describe 'associations' do
     it { should have_many(:academies).dependent(:restrict_with_error) }
     it { should have_many(:orders).dependent(:destroy) }
+    it { should have_many(:attachments).dependent(:destroy) }
+    it { should have_one(:headshot).dependent(:destroy) }
   end
 
   describe 'validations' do
@@ -27,5 +29,21 @@ RSpec.describe User, type: :model do
     it { should define_enum_for(:belt_rank).with_values(white: 'white', blue: 'blue', purple: 'purple', brown: 'brown', black: 'black').backed_by_column_of_type(:string) }
 
     it { should have_secure_password }
+  end
+
+  describe 'headshot association' do
+  let(:user) { create(:user) }
+  let(:headshot) { create(:attachment, :headshot, attachable: user) }
+  let(:attachment) { create(:attachment, :photo, attachable: user) }
+
+  before do
+    headshot
+    attachment
+  end
+
+  it 'correctly finds the headshot' do
+    expect(user.headshot).to eq(headshot)
+    expect(user.attachments.count).to eq(2)
+  end
   end
 end

@@ -7,10 +7,10 @@ RSpec.describe Academy, type: :model do
     it { should have_many(:order_line_items).through(:passes) }
     it { should have_many(:academy_amenities).dependent(:destroy) }
     it { should have_many(:amenities).through(:academy_amenities) }
+    it { should have_many(:attachments).dependent(:destroy) }
   end
 
   describe 'validations' do
-    # We need a subject for the uniqueness validation
     let(:user) { User.create!(firstname: 'Owner', lastname: 'One', email: 'owner@example.com', username: 'owner1', password: 'password', role: 'owner') }
     subject { Academy.new(user: user, name: 'Test Academy', email: 'academy@example.com', street_address: '123 Main St', city: 'Anytown', country: 'USA') }
 
@@ -55,6 +55,34 @@ RSpec.describe Academy, type: :model do
       it 'rounds to one decimal place' do
         expect(academy.average_rating).to eq(4.3)
       end
+    end
+  end
+
+  describe 'attachments' do
+    let(:owner) { create(:user, :owner) }
+    let!(:academy) { create(:academy, user: owner) }
+    let!(:logo) { create(:attachment, :logo, attachable: academy) }
+    let!(:photo1) { create(:attachment, :photo, attachable: academy) }
+    let!(:photo2) { create(:attachment, :photo, attachable: academy) }
+
+    before do
+      logo
+      photo1
+      photo2
+    end
+
+    it 'returns the correct logo via the #logo helper' do
+      expect(academy.logo).to eq(logo)
+    end
+
+    it 'returns the correct photos via the #photos helper' do
+      expect(academy.photos).to include(photo1, photo2)
+      expect(academy.photos.count).to eq(2)
+    end
+
+    it 'does not mix up logos and photos' do
+      expect(academy.photos).not_to include(logo)
+      expect(academy.logo).not_to eq(photo1)
     end
   end
 end

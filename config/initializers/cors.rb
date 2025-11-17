@@ -16,8 +16,8 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
 
     resource "*",
              headers: :any,
-             methods: [:get, :post, :put, :patch, :delete, :options, :head],
+             methods: [ :get, :post, :put, :patch, :delete, :options, :head ],
              # 3. We MUST expose the Authorization header so the frontend can read it
-             expose: ['Authorization']
+             expose: [ "Authorization" ]
   end
 end
