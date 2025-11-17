@@ -11,7 +11,7 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
     # 2. Add your *future* Vercel production URL
     # 3. We'll also add a "wildcard" for Vercel preview deploys
     origins "http://localhost:5173",
-            "https://openmat-frontend.vercel.app", # The correct URL
+            "https://openmat-frontend.vercel.app", # <-- THE FIX IS HERE
             /\.vercel\.app$/ # Allows all Vercel subdomains (for previews)
 
     resource "*",
