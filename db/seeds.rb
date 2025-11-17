@@ -103,50 +103,46 @@ end
 
 puts "Created #{ClassSchedule.count} class schedules."
 
-# --- 7. (NEW) Create Attachments (Images) ---
 puts "Seeding attachments..."
 
 # Clear old attachments first to prevent duplicates
 Attachment.where(attachable: [academy_a, academy_b]).destroy_all
 puts "Cleared old attachments."
 
-# Define the filenames you used
 LOGO_FILE = "logo.png"
 PHOTO_1_FILE = "photo_1.png"
 PHOTO_2_FILE = "photo_2.png"
 
-# Create attachments for Academy A
 Attachment.create!(
   attachable: academy_a,
   kind: 'logo',
-  url: "#{LIVE_API_URL}/seed_images/#{LOGO_FILE}"
+  url: "/seed_images/#{LOGO_FILE}"
 )
 Attachment.create!(
   attachable: academy_a,
   kind: 'photo',
-  url: "#{LIVE_API_URL}/seed_images/#{PHOTO_1_FILE}"
+  url: "/seed_images/#{PHOTO_1_FILE}"
 )
 Attachment.create!(
   attachable: academy_a,
   kind: 'photo',
-  url: "#{LIVE_API_URL}/seed_images/#{PHOTO_2_FILE}"
+  url: "/seed_images/#{PHOTO_2_FILE}"
 )
 
-# Create attachments for Academy B (using the same images)
 Attachment.create!(
   attachable: academy_b,
   kind: 'logo',
-  url: "#{LIVE_API_URL}/seed_images/#{LOGO_FILE}"
+  url: "/seed_images/#{LOGO_FILE}"
 )
 Attachment.create!(
   attachable: academy_b,
   kind: 'photo',
-  url: "#{LIVE_API_URL}/seed_images/#{PHOTO_1_FILE}"
+  url: "/seed_images/#{PHOTO_1_FILE}"
 )
 Attachment.create!(
   attachable: academy_b,
   kind: 'photo',
-  url: "#{LIVE_API_URL}/seed_images/#{PHOTO_2_FILE}"
+  url: "/seed_images/#{PHOTO_2_FILE}"
 )
 
 puts "Created #{Attachment.count} attachments."
