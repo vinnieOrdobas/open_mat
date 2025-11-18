@@ -77,6 +77,19 @@ RSpec.describe Api::V1::AcademiesController, type: :controller do
       end
     end
 
+    context 'with location filter param' do
+      let(:request_params) { { location: 'Dublin' } }
+
+      before do
+        allow(mock_query_object).to receive(:by_location).and_return(mock_query_object)
+      end
+
+      it 'calls .by_location on the query object' do
+        do_action
+        expect(mock_query_object).to have_received(:by_location).with('Dublin')
+      end
+    end
+
     context 'with multiple filter params' do
       let(:request_params) { { city: 'Cork', amenity_id: '10' } }
 

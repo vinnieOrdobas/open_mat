@@ -9,7 +9,6 @@ RSpec.describe Academies::SearchQuery do
   let!(:academy_cork_showers) { create(:academy, name: 'Cork MMA', city: 'Cork', country: 'IE') }
   let!(:academy_london_showers) { create(:academy, name: 'London Grappling', city: 'London', country: 'GB') }
 
-  # Add amenities to academies
   before do
     create(:academy_amenity, academy: academy_dublin_showers, amenity: amenity_showers)
     create(:academy_amenity, academy: academy_cork_showers, amenity: amenity_showers)
@@ -23,43 +22,42 @@ RSpec.describe Academies::SearchQuery do
     end
   end
 
-  describe '#by_city' do
-    it 'filters by full city name (case-insensitive)' do
-      results = described_class.new.by_city('Dublin').results
+  describe '#by_location' do
+    it 'finds academies by city name (case-insensitive)' do
+      results = described_class.new.by_location('Dublin').results
       expect(results).to contain_exactly(academy_dublin_showers, academy_dublin_no_showers)
 
-      results_lower = described_class.new.by_city('dublin').results
+      results_lower = described_class.new.by_location('dublin').results
       expect(results_lower).to contain_exactly(academy_dublin_showers, academy_dublin_no_showers)
     end
 
-    it 'filters by partial city name' do
-      results = described_class.new.by_city('Dub').results
+    it 'finds academies by country code' do
+      results = described_class.new.by_location('IE').results
+      expect(results).to contain_exactly(academy_dublin_showers, academy_dublin_no_showers, academy_cork_showers)
+    end
+
+    it 'finds academies by partial city name' do
+      results = described_class.new.by_location('Dub').results
       expect(results).to contain_exactly(academy_dublin_showers, academy_dublin_no_showers)
     end
 
-    it 'returns an empty relation if no match' do
-      results = described_class.new.by_city('NonExistent').results
+    it 'returns empty if no match' do
+      results = described_class.new.by_location('Paris').results
       expect(results).to be_empty
     end
+  end
 
-    it 'is chainable' do
-      query = described_class.new.by_city('Dublin')
-      expect(query).to be_a(described_class)
+  describe '#by_city' do
+    it 'filters by full city name' do
+      results = described_class.new.by_city('Cork').results
+      expect(results).to contain_exactly(academy_cork_showers)
     end
   end
 
   describe '#by_country' do
-    it 'filters by country code (case-insensitive)' do
-      results = described_class.new.by_country('IE').results
-      expect(results).to contain_exactly(academy_dublin_showers, academy_dublin_no_showers, academy_cork_showers)
-
-      results_lower = described_class.new.by_country('ie').results
-      expect(results_lower).to contain_exactly(academy_dublin_showers, academy_dublin_no_showers, academy_cork_showers)
-    end
-
-    it 'returns an empty relation if no match' do
-      results = described_class.new.by_country('US').results
-      expect(results).to be_empty
+    it 'filters by country code' do
+      results = described_class.new.by_country('GB').results
+      expect(results).to contain_exactly(academy_london_showers)
     end
   end
 

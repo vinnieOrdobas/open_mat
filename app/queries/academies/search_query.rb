@@ -28,6 +28,13 @@ module Academies
       self
     end
 
+    def by_location(term)
+      return self if term.blank?
+
+      @relation = @relation.where("city ILIKE :term OR country ILIKE :term", term: "%#{term}%")
+      self
+    end
+
     def results
       @relation
     end
