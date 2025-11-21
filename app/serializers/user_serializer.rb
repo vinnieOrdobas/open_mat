@@ -14,6 +14,6 @@ class UserSerializer < ApplicationSerializer
   has_one :headshot, serializer: AttachmentSerializer
   has_many :orders
 
-  # We can add this later for an owner-specific view
   # has_many :academies
+  has_many :bookings, serializer: BookingSerializer
 end

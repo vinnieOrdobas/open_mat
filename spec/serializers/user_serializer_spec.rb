@@ -16,6 +16,7 @@ RSpec.describe UserSerializer, type: :serializer do
   let!(:headshot) { create(:attachment, :headshot, attachable: user) }
   let!(:order) { create(:order, user: user) }
   let(:json) { described_class.new(user.reload).as_json.deep_symbolize_keys }
+  let!(:booking) { create(:booking, user: user) }
 
   let(:expected_keys) do
     [
@@ -29,7 +30,8 @@ RSpec.describe UserSerializer, type: :serializer do
       :created_at,
       :updated_at,
       :headshot,
-      :orders
+      :orders,
+      :bookings
     ]
   end
 
@@ -58,5 +60,11 @@ RSpec.describe UserSerializer, type: :serializer do
     expect(json[:orders]).to be_an(Array)
     expect(json[:orders].count).to eq(1)
     expect(json[:orders].first[:id]).to eq(order.id)
+  end
+
+  it 'includes the nested bookings' do
+    expect(json[:bookings]).to be_an(Array)
+    expect(json[:bookings].count).to eq(1)
+    expect(json[:bookings].first[:id]).to eq(booking.id)
   end
 end
