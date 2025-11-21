@@ -105,8 +105,7 @@ puts "Created #{ClassSchedule.count} class schedules."
 
 puts "Seeding attachments..."
 
-# Clear old attachments first to prevent duplicates
-Attachment.where(attachable: [academy_a, academy_b]).destroy_all
+Attachment.where(attachable: [ academy_a, academy_b ]).destroy_all
 puts "Cleared old attachments."
 
 LOGO_FILE = "logo.png"
@@ -146,4 +145,70 @@ Attachment.create!(
 )
 
 puts "Created #{Attachment.count} attachments."
+
+if student.orders.empty?
+  puts "Seeding student history..."
+
+  order = Order.create!(
+    user: student,
+    status: 'completed',
+    total_price_cents: (pass_a_day.price_cents + pass_b_week.price_cents),
+    currency: 'USD'
+  )
+
+  item_a = OrderLineItem.create!(
+    order: order,
+    pass: pass_a_day,
+    quantity: 1,
+    price_at_purchase_cents: pass_a_day.price_cents,
+    status: 'approved'
+  )
+
+  student_pass_a = StudentPass.create!(
+    user: student,
+    pass: pass_a_day,
+    order_line_item: item_a,
+    academy: academy_a,
+    status: 'active', # It was active...
+    credits_remaining: 1
+  )
+
+  item_b = OrderLineItem.create!(
+    order: order,
+    pass: pass_b_week,
+    quantity: 1,
+    price_at_purchase_cents: pass_b_week.price_cents,
+    status: 'approved'
+  )
+  StudentPass.create!(
+    user: student,
+    pass: pass_b_week,
+    order_line_item: item_b,
+    academy: academy_b,
+    status: 'active',
+    expires_at: 1.week.from_now
+  )
+
+  Payment.create!(
+    order: order,
+    status: 'succeeded',
+    amount_cents: order.total_price_cents,
+    currency: 'USD',
+    processor: 'mock',
+    processor_id: 'seed_pay_12345'
+  )
+
+  Booking.create!(
+    user: student,
+    class_schedule: schedule_a_1,
+    student_pass: student_pass_a
+  )
+
+  student_pass_a.update!(credits_remaining: 0, status: 'depleted')
+
+  puts "Created history: 1 Order, 2 Passes, 1 Booking."
+else
+  puts "Student history already exists."
+end
+
 puts "Seed data created successfully!"
