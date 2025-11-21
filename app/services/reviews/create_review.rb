@@ -22,11 +22,13 @@ module Reviews
     private
 
     def user_has_attended?
-      @user.student_passes.exists?(academy_id: @academy.id, status: %i[expired depleted])
+      @user.bookings.joins(:class_schedule)
+           .where(class_schedules: { academy_id: @academy.id })
+           .exists?
     end
 
     def validation_error
-      { success: false, errors: [ "You can only review academies you have attended" ] }
+      { success: false, errors: ['You can only review academies you have booked a class with'] }
     end
   end
 end
