@@ -3,8 +3,15 @@
 class BookingSerializer < ApplicationSerializer
   attributes :id,
              :user_id,
-             :created_at
+             :created_at,
+             :class_schedule,
+             :student_pass
 
-  belongs_to :class_schedule, serializer: ClassScheduleSerializer
-  belongs_to :student_pass, serializer: StudentPassSerializer
+  def class_schedule
+    ClassScheduleSerializer.new(object.class_schedule).as_json
+  end
+
+  def student_pass
+    StudentPassSerializer.new(object.student_pass).as_json
+  end
 end
