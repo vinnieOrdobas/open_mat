@@ -119,7 +119,7 @@ RSpec.describe 'Api::V1::Reviews Workflow', type: :request do
     let!(:review1) { create(:review, academy: academy, user: student, rating: 5) }
     let!(:review2) { create(:review, academy: academy, user: other_student, rating: 3) }
 
-    it 'is public and returns the list of reviews' do
+    it 'is public and returns the list of reviews' do # check whether reviews are public
       get reviews_url
 
       expect(response).to have_http_status(:ok)
