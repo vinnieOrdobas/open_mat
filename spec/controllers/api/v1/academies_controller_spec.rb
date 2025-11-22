@@ -20,11 +20,13 @@ RSpec.describe Api::V1::AcademiesController, type: :controller do
 
     before do
       allow(Academies::SearchQuery).to receive(:new).and_return(mock_query_object)
-      allow(mock_query_object).to receive(:by_city).and_return(mock_query_object)
-      allow(mock_query_object).to receive(:by_country).and_return(mock_query_object)
+      allow(mock_query_object).to receive(:by_term).and_return(mock_query_object)
       allow(mock_query_object).to receive(:with_amenity_id).and_return(mock_query_object)
+      allow(mock_query_object).to receive(:by_pass_type).and_return(mock_query_object)
+      allow(mock_query_object).to receive(:by_class_day).and_return(mock_query_object)
       allow(mock_query_object).to receive(:results).and_return(filtered_academies)
-      allow(AcademySerializer).to receive(:new).and_call_original # Allow it to work normally
+
+      allow(AcademySerializer).to receive(:new).and_call_original
     end
 
     it 'instantiates a SearchQuery' do
@@ -37,34 +39,39 @@ RSpec.describe Api::V1::AcademiesController, type: :controller do
       expect(mock_query_object).to have_received(:results)
     end
 
-    it 'returns an :ok (200) status' do
-      do_action
-      expect(response).to have_http_status(:ok)
-    end
-
     it 'returns an :ok (200) status and renders a JSON array' do
       do_action
       expect(response).to have_http_status(:ok)
 
       json_response = JSON.parse(response.body)
       expect(json_response).to be_an(Array)
+      expect(json_response.length).to eq(2)
     end
 
-    context 'with city filter param' do
-      let(:request_params) { { city: 'Dublin' } }
+    context 'with term filter param' do
+      let(:request_params) { { term: 'Dublin' } }
 
-      it 'calls .by_city on the query object' do
+      it 'calls .by_term on the query object' do
         do_action
-        expect(mock_query_object).to have_received(:by_city).with('Dublin')
+        expect(mock_query_object).to have_received(:by_term).with('Dublin')
       end
     end
 
-    context 'with country filter param' do
-      let(:request_params) { { country: 'IE' } }
+    context 'with pass_type filter param' do
+      let(:request_params) { { pass_type: 'day_pass' } }
 
-      it 'calls .by_country on the query object' do
+      it 'calls .by_pass_type on the query object' do
         do_action
-        expect(mock_query_object).to have_received(:by_country).with('IE')
+        expect(mock_query_object).to have_received(:by_pass_type).with('day_pass')
+      end
+    end
+
+    context 'with class_day filter param' do
+      let(:request_params) { { class_day: '1' } }
+
+      it 'calls .by_class_day on the query object' do
+        do_action
+        expect(mock_query_object).to have_received(:by_class_day).with('1')
       end
     end
 
@@ -77,27 +84,14 @@ RSpec.describe Api::V1::AcademiesController, type: :controller do
       end
     end
 
-    context 'with location filter param' do
-      let(:request_params) { { location: 'Dublin' } }
-
-      before do
-        allow(mock_query_object).to receive(:by_location).and_return(mock_query_object)
-      end
-
-      it 'calls .by_location on the query object' do
-        do_action
-        expect(mock_query_object).to have_received(:by_location).with('Dublin')
-      end
-    end
-
     context 'with multiple filter params' do
-      let(:request_params) { { city: 'Cork', amenity_id: '10' } }
+      let(:request_params) { { term: 'Cork', amenity_id: '10', pass_type: 'month_pass' } }
 
       it 'calls all relevant filter methods' do
         do_action
-        expect(mock_query_object).to have_received(:by_city).with('Cork')
-        expect(mock_query_object).not_to have_received(:by_country) # Ensure non-present filters aren't called
+        expect(mock_query_object).to have_received(:by_term).with('Cork')
         expect(mock_query_object).to have_received(:with_amenity_id).with('10')
+        expect(mock_query_object).to have_received(:by_pass_type).with('month_pass')
       end
     end
   end

@@ -1,97 +1,66 @@
 # frozen_string_literal: true
 
 RSpec.describe Academies::SearchQuery do
-  let!(:amenity_showers) { create(:amenity, name: 'Showers') }
-  let!(:amenity_mats) { create(:amenity, name: 'Large Mat Area') }
-
-  let!(:academy_dublin_showers) { create(:academy, name: 'Dublin BJJ', city: 'Dublin', country: 'IE') }
-  let!(:academy_dublin_no_showers) { create(:academy, name: 'Dublin No-Gi', city: 'Dublin', country: 'IE') }
-  let!(:academy_cork_showers) { create(:academy, name: 'Cork MMA', city: 'Cork', country: 'IE') }
-  let!(:academy_london_showers) { create(:academy, name: 'London Grappling', city: 'London', country: 'GB') }
+  let(:owner) { create(:user, :owner) }
+  let(:owner_1) { create(:user, :owner) }
+  let(:owner_2) { create(:user, :owner) }
+  let!(:academy_dublin) { create(:academy, name: 'Dublin BJJ', city: 'Dublin', country: 'IE', user: owner) }
+  let!(:academy_cork) { create(:academy, name: 'Cork MMA', city: 'Cork', country: 'IE', user: owner_1) }
+  let!(:academy_london) { create(:academy, name: 'London Grappling', city: 'London', country: 'GB', user: owner_2) }
 
   before do
-    create(:academy_amenity, academy: academy_dublin_showers, amenity: amenity_showers)
-    create(:academy_amenity, academy: academy_cork_showers, amenity: amenity_showers)
-    create(:academy_amenity, academy: academy_london_showers, amenity: amenity_showers)
+    create(:pass, :day_pass, academy: academy_dublin)
+    create(:pass, :month_pass, academy: academy_cork)
+    create(:class_schedule, academy: academy_london, day_of_week: 1)
+    create(:class_schedule, academy: academy_dublin, day_of_week: 2)
   end
 
   describe '#results' do
     it 'returns all academies by default' do
       results = described_class.new.results
-      expect(results.count).to eq(4)
+      expect(results.count).to eq(3)
     end
   end
 
-  describe '#by_location' do
-    it 'finds academies by city name (case-insensitive)' do
-      results = described_class.new.by_location('Dublin').results
-      expect(results).to contain_exactly(academy_dublin_showers, academy_dublin_no_showers)
-
-      results_lower = described_class.new.by_location('dublin').results
-      expect(results_lower).to contain_exactly(academy_dublin_showers, academy_dublin_no_showers)
+  describe '#by_term' do
+    it 'finds academies by name' do
+      results = described_class.new.by_term('Grappling').results
+      expect(results).to contain_exactly(academy_london)
     end
 
-    it 'finds academies by country code' do
-      results = described_class.new.by_location('IE').results
-      expect(results).to contain_exactly(academy_dublin_showers, academy_dublin_no_showers, academy_cork_showers)
+    it 'finds academies by city' do
+      results = described_class.new.by_term('Dublin').results
+      expect(results).to contain_exactly(academy_dublin)
     end
 
-    it 'finds academies by partial city name' do
-      results = described_class.new.by_location('Dub').results
-      expect(results).to contain_exactly(academy_dublin_showers, academy_dublin_no_showers)
+    it 'finds academies by country' do
+      results = described_class.new.by_term('IE').results
+      expect(results).to contain_exactly(academy_dublin, academy_cork)
     end
 
-    it 'returns empty if no match' do
-      results = described_class.new.by_location('Paris').results
-      expect(results).to be_empty
+    it 'finds academies by partial match' do
+      results = described_class.new.by_term('Dub').results
+      expect(results).to contain_exactly(academy_dublin)
     end
   end
 
-  describe '#by_city' do
-    it 'filters by full city name' do
-      results = described_class.new.by_city('Cork').results
-      expect(results).to contain_exactly(academy_cork_showers)
+  describe '#by_pass_type' do
+    it 'finds academies offering a specific pass type' do
+      results = described_class.new.by_pass_type('day_pass').results
+      expect(results).to contain_exactly(academy_dublin)
+
+      results_month = described_class.new.by_pass_type('month_pass').results
+      expect(results_month).to contain_exactly(academy_cork)
     end
   end
 
-  describe '#by_country' do
-    it 'filters by country code' do
-      results = described_class.new.by_country('GB').results
-      expect(results).to contain_exactly(academy_london_showers)
-    end
-  end
+  describe '#by_class_day' do
+    it 'finds academies with classes on a specific day' do
+      results = described_class.new.by_class_day(1).results
+      expect(results).to contain_exactly(academy_london)
 
-  describe '#with_amenity_id' do
-    it 'filters academies that have the specified amenity' do
-      results = described_class.new.with_amenity_id(amenity_showers.id).results
-      expect(results).to contain_exactly(academy_dublin_showers, academy_cork_showers, academy_london_showers)
-    end
-
-    it 'returns an empty relation if no academy has the amenity' do
-      results = described_class.new.with_amenity_id(amenity_mats.id).results
-      expect(results).to be_empty
-    end
-  end
-
-  describe 'chaining filters' do
-    it 'correctly chains city and country' do
-      results = described_class.new.by_city('Dublin').by_country('IE').results
-      expect(results).to contain_exactly(academy_dublin_showers, academy_dublin_no_showers)
-    end
-
-    it 'correctly chains city and amenity' do
-      results = described_class.new.by_city('Dublin').with_amenity_id(amenity_showers.id).results
-      expect(results).to contain_exactly(academy_dublin_showers)
-    end
-
-    it 'correctly chains country and amenity' do
-      results = described_class.new.by_country('IE').with_amenity_id(amenity_showers.id).results
-      expect(results).to contain_exactly(academy_dublin_showers, academy_cork_showers)
-    end
-
-    it 'correctly chains city, country, and amenity' do
-      results = described_class.new.by_city('Cork').by_country('IE').with_amenity_id(amenity_showers.id).results
-      expect(results).to contain_exactly(academy_cork_showers)
+      results_tue = described_class.new.by_class_day(2).results
+      expect(results_tue).to contain_exactly(academy_dublin)
     end
   end
 end

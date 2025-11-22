@@ -2,18 +2,25 @@
 
 RSpec.describe 'Api::V1::Academies', type: :request do
   describe 'GET /api/v1/academies (Index)' do
+    let!(:owner) { create(:user, :owner) }
+
     let!(:amenity_showers) { create(:amenity, name: 'Showers') }
-    let!(:amenity_mats) { create(:amenity, name: 'Large Mat Area') } # Not used by academies
+    let!(:amenity_mats) { create(:amenity, name: 'Large Mat Area') }
 
-    let!(:academy1) { create(:academy, name: 'Academy One', city: 'Dublin', country: 'IE') }
-    let!(:academy2) { create(:academy, name: 'Academy Two', city: 'Dublin', country: 'IE') }
-    let!(:academy3) { create(:academy, name: 'Academy Three', city: 'Cork', country: 'IE') }
-    let!(:academy4) { create(:academy, name: 'Academy Four', city: 'London', country: 'GB') }
+    let!(:academy1) { create(:academy, name: 'Academy One', city: 'Dublin', country: 'IE', user: owner) }
+    let!(:pass1) { create(:pass, :day_pass, academy: academy1) }
+    let!(:schedule1) { create(:class_schedule, academy: academy1, day_of_week: 1) } # Monday
+    let!(:link1) { create(:academy_amenity, academy: academy1, amenity: amenity_showers) }
 
-    before do
-      create(:academy_amenity, academy: academy1, amenity: amenity_showers)
-      create(:academy_amenity, academy: academy3, amenity: amenity_showers)
-    end
+    let!(:academy2) { create(:academy, name: 'Academy Two', city: 'Dublin', country: 'IE', user: owner) }
+
+    let!(:academy3) { create(:academy, name: 'Academy Three', city: 'Cork', country: 'IE', user: owner) }
+    let!(:pass3) { create(:pass, :month_pass, academy: academy3) }
+    let!(:link3) { create(:academy_amenity, academy: academy3, amenity: amenity_showers) }
+
+    let!(:academy4) { create(:academy, name: 'Academy Four', city: 'London', country: 'GB', user: owner) }
+    let!(:schedule4) { create(:class_schedule, academy: academy4, day_of_week: 2) } # Tuesday
+    let!(:link4) { create(:academy_amenity, academy: academy4, amenity: amenity_mats) }
 
     let(:json_response) { JSON.parse(response.body) }
 
@@ -35,60 +42,57 @@ RSpec.describe 'Api::V1::Academies', type: :request do
       end
     end
 
-    context 'when filtering by city' do
-      it 'returns only academies in that city (case-insensitive)' do
-        get '/api/v1/academies?city=Dublin'
-        expect(response).to have_http_status(:ok)
-        expect(json_response.count).to eq(2)
-        expect(json_response.map { |a| a['name'] }).to contain_exactly('Academy One', 'Academy Two')
-
-        get '/api/v1/academies?city=dublin'
-        expect(response).to have_http_status(:ok)
-        expect(json_response.count).to eq(2)
-      end
-
-      it 'returns academies matching partially by city' do
-        get '/api/v1/academies?city=Dub'
+    context 'when searching by "term" (Smart Search)' do
+      it 'filters by city (e.g., Dublin)' do
+        get '/api/v1/academies?term=Dublin'
         expect(response).to have_http_status(:ok)
         expect(json_response.count).to eq(2)
         expect(json_response.map { |a| a['name'] }).to contain_exactly('Academy One', 'Academy Two')
       end
-    end
 
-    context 'when filtering by country' do
-      it 'returns only academies in that country (case-insensitive)' do
-        get '/api/v1/academies?country=IE'
-        expect(response).to have_http_status(:ok)
-        expect(json_response.count).to eq(3)
-        expect(json_response.map { |a| a['name'] }).to contain_exactly('Academy One', 'Academy Two', 'Academy Three')
-
-        get '/api/v1/academies?country=ie'
+      it 'filters by country (e.g., IE)' do
+        get '/api/v1/academies?term=IE'
         expect(response).to have_http_status(:ok)
         expect(json_response.count).to eq(3)
       end
-    end
 
-    context 'when filtering by amenity_id' do
-      it 'returns only academies with that amenity' do
-        get "/api/v1/academies?amenity_id=#{amenity_showers.id}"
-        expect(response).to have_http_status(:ok)
-        expect(json_response.count).to eq(2)
-        expect(json_response.map { |a| a['name'] }).to contain_exactly('Academy One', 'Academy Three')
-      end
-
-      it 'returns an empty list if no academy has the amenity' do
-        get "/api/v1/academies?amenity_id=#{amenity_mats.id}"
-        expect(response).to have_http_status(:ok)
-        expect(json_response.count).to eq(0)
-      end
-    end
-
-    context 'when chaining multiple filters' do
-      it 'returns academies matching all criteria' do
-        get "/api/v1/academies?city=Dublin&country=IE&amenity_id=#{amenity_showers.id}"
+      it 'filters by name (e.g., Four)' do
+        get '/api/v1/academies?term=Four'
         expect(response).to have_http_status(:ok)
         expect(json_response.count).to eq(1)
-        expect(json_response.first['name']).to eq('Academy One')
+        expect(json_response.first['name']).to eq('Academy Four')
+      end
+    end
+
+    # --- 3. Advanced Filters ---
+    context 'when using advanced filters' do
+      it 'filters by pass type (e.g. day_pass)' do
+        get '/api/v1/academies?pass_type=day_pass'
+        expect(json_response.count).to eq(1)
+        expect(json_response.first['id']).to eq(academy1.id)
+      end
+
+      it 'filters by class day (e.g. Monday=1)' do
+        get '/api/v1/academies?class_day=1'
+        expect(json_response.count).to eq(1)
+        expect(json_response.first['id']).to eq(academy1.id)
+      end
+
+      it 'filters by amenity' do
+        get "/api/v1/academies?amenity_id=#{amenity_mats.id}"
+        expect(json_response.count).to eq(1)
+        expect(json_response.first['id']).to eq(academy4.id)
+      end
+    end
+
+    context 'when chaining filters' do
+      it 'filters by Term AND Pass Type' do
+        get '/api/v1/academies?term=Dublin&pass_type=day_pass'
+        expect(json_response.count).to eq(1)
+        expect(json_response.first['id']).to eq(academy1.id)
+
+        get '/api/v1/academies?term=London&pass_type=day_pass'
+        expect(JSON.parse(response.body)).to be_empty
       end
     end
   end
@@ -100,7 +104,7 @@ RSpec.describe 'Api::V1::Academies', type: :request do
     let!(:pass) { create(:pass, academy: academy, name: 'Single Class') }
 
     before do
-      academy.amenities << amenity
+      create(:academy_amenity, academy: academy, amenity: amenity)
     end
 
     let(:json_response) { JSON.parse(response.body).deep_symbolize_keys }

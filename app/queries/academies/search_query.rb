@@ -6,17 +6,27 @@ module Academies
       @relation = relation
     end
 
-    def by_city(city)
-      return self if city.blank?
+    def by_term(term)
+      return self if term.blank?
 
-      @relation = @relation.where("city ILIKE ?", "%#{city}%")
+      @relation = @relation.where(
+        "academies.name LIKE :term OR city LIKE :term OR country LIKE :term",
+        term: "%#{term}%"
+      )
       self
     end
 
-    def by_country(country_code)
-      return self if country_code.blank?
+    def by_pass_type(pass_type)
+      return self if pass_type.blank?
 
-      @relation = @relation.where("country ILIKE ?", country_code)
+      @relation = @relation.joins(:passes).where(passes: { pass_type: pass_type }).distinct
+      self
+    end
+
+    def by_class_day(day_integer)
+      return self if day_integer.blank?
+
+      @relation = @relation.joins(:class_schedules).where(class_schedules: { day_of_week: day_integer }).distinct
       self
     end
 
@@ -28,15 +38,14 @@ module Academies
       self
     end
 
-    def by_location(term)
-      return self if term.blank?
-
-      @relation = @relation.where("city ILIKE :term OR country ILIKE :term", term: "%#{term}%")
-      self
-    end
-
     def results
-      @relation
+      Academy.includes(
+        :attachments,
+        :amenities,
+        :passes,
+        :reviews,
+        :class_schedules
+      ).where(id: @relation.ids)
     end
   end
 end
