@@ -25,6 +25,7 @@ Rails.application.routes.draw do
       end
 
       resources :amenities, only: %i[index]
+      resources :countries, only: %i[index]
 
       resources :order_line_items, only: %i[update], controller: "order_line_items"
 
