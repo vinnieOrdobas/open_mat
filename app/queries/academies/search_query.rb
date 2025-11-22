@@ -6,6 +6,7 @@ module Academies
       @relation = relation
     end
 
+    # --- 1. Smart Search ---
     def by_term(term)
       return self if term.blank?
 
@@ -16,25 +17,35 @@ module Academies
       self
     end
 
-    def by_pass_type(pass_type)
-      return self if pass_type.blank?
+    def by_pass_types(pass_types)
+      return self if pass_types.blank?
 
-      @relation = @relation.joins(:passes).where(passes: { pass_type: pass_type }).distinct
+      @relation = @relation.joins(:passes).where(passes: { pass_type: pass_types }).distinct
       self
     end
 
-    def by_class_day(day_integer)
-      return self if day_integer.blank?
+    def by_class_days(days)
+      return self if days.blank?
 
-      @relation = @relation.joins(:class_schedules).where(class_schedules: { day_of_week: day_integer }).distinct
+      @relation = @relation.joins(:class_schedules).where(class_schedules: { day_of_week: days }).distinct
       self
     end
 
-    def with_amenity_id(amenity_id)
-      return self if amenity_id.blank?
+    def with_amenity_ids(amenity_ids)
+      return self if amenity_ids.blank?
 
+      amenity_ids = amenity_ids.uniq
       @relation = @relation.joins(:academy_amenities)
-                           .where(academy_amenities: { amenity_id: amenity_id })
+                           .where(academy_amenities: { amenity_id: amenity_ids })
+                           .group("academies.id")
+                           .having("COUNT(DISTINCT academy_amenities.amenity_id) >= ?", amenity_ids.size)
+      self
+    end
+
+    def by_countries(country_codes)
+      return self if country_codes.blank?
+
+      @relation = @relation.where(country: country_codes)
       self
     end
 

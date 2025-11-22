@@ -40,9 +40,10 @@ class Api::V1::AcademiesController < Api::V1::ApplicationController
     query = Academies::SearchQuery.new
 
     query = query.by_term(params[:term]) if params[:term].present?
-    query = query.with_amenity_id(params[:amenity_id]) if params[:amenity_id].present?
-    query = query.by_pass_type(params[:pass_type]) if params[:pass_type].present?
-    query = query.by_class_day(params[:class_day]) if params[:class_day].present?
+    query = query.with_amenity_ids(Array(params[:amenity_ids]).map(&:to_i)) if params[:amenity_ids].present?
+    query = query.by_pass_types(params[:pass_types]) if params[:pass_types].present?
+    query = query.by_class_days(Array(params[:class_days]).map(&:to_i)) if params[:class_days].present?
+    query = query.by_countries(params[:countries]) if params[:countries].present?
 
     query.results
   end

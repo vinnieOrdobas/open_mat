@@ -21,9 +21,10 @@ RSpec.describe Api::V1::AcademiesController, type: :controller do
     before do
       allow(Academies::SearchQuery).to receive(:new).and_return(mock_query_object)
       allow(mock_query_object).to receive(:by_term).and_return(mock_query_object)
-      allow(mock_query_object).to receive(:with_amenity_id).and_return(mock_query_object)
-      allow(mock_query_object).to receive(:by_pass_type).and_return(mock_query_object)
-      allow(mock_query_object).to receive(:by_class_day).and_return(mock_query_object)
+      allow(mock_query_object).to receive(:with_amenity_ids).and_return(mock_query_object)
+      allow(mock_query_object).to receive(:by_pass_types).and_return(mock_query_object)
+      allow(mock_query_object).to receive(:by_class_days).and_return(mock_query_object)
+      allow(mock_query_object).to receive(:by_countries).and_return(mock_query_object)
       allow(mock_query_object).to receive(:results).and_return(filtered_academies)
 
       allow(AcademySerializer).to receive(:new).and_call_original
@@ -58,40 +59,40 @@ RSpec.describe Api::V1::AcademiesController, type: :controller do
     end
 
     context 'with pass_type filter param' do
-      let(:request_params) { { pass_type: 'day_pass' } }
+      let(:request_params) { { pass_types: [ 'day_pass' ] } }
 
       it 'calls .by_pass_type on the query object' do
         do_action
-        expect(mock_query_object).to have_received(:by_pass_type).with('day_pass')
+        expect(mock_query_object).to have_received(:by_pass_types).with([ 'day_pass' ])
       end
     end
 
     context 'with class_day filter param' do
-      let(:request_params) { { class_day: '1' } }
+      let(:request_params) { { class_days: [ '1' ] } }
 
       it 'calls .by_class_day on the query object' do
         do_action
-        expect(mock_query_object).to have_received(:by_class_day).with('1')
+        expect(mock_query_object).to have_received(:by_class_days).with([1])
       end
     end
 
     context 'with amenity_id filter param' do
-      let(:request_params) { { amenity_id: '5' } }
+      let(:request_params) { { amenity_ids: [ '5' ] } }
 
       it 'calls .with_amenity_id on the query object' do
         do_action
-        expect(mock_query_object).to have_received(:with_amenity_id).with('5')
+        expect(mock_query_object).to have_received(:with_amenity_ids).with([5])
       end
     end
 
     context 'with multiple filter params' do
-      let(:request_params) { { term: 'Cork', amenity_id: '10', pass_type: 'month_pass' } }
+      let(:request_params) { { term: 'Cork', amenity_ids: [ '10' ], pass_types: [ 'month_pass' ] } }
 
       it 'calls all relevant filter methods' do
         do_action
         expect(mock_query_object).to have_received(:by_term).with('Cork')
-        expect(mock_query_object).to have_received(:with_amenity_id).with('10')
-        expect(mock_query_object).to have_received(:by_pass_type).with('month_pass')
+        expect(mock_query_object).to have_received(:with_amenity_ids).with([10])
+        expect(mock_query_object).to have_received(:by_pass_types).with([ 'month_pass' ])
       end
     end
   end

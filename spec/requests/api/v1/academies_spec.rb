@@ -67,19 +67,19 @@ RSpec.describe 'Api::V1::Academies', type: :request do
     # --- 3. Advanced Filters ---
     context 'when using advanced filters' do
       it 'filters by pass type (e.g. day_pass)' do
-        get '/api/v1/academies?pass_type=day_pass'
+        get '/api/v1/academies?pass_types=day_pass'
         expect(json_response.count).to eq(1)
         expect(json_response.first['id']).to eq(academy1.id)
       end
 
       it 'filters by class day (e.g. Monday=1)' do
-        get '/api/v1/academies?class_day=1'
+        get '/api/v1/academies?class_days=1'
         expect(json_response.count).to eq(1)
         expect(json_response.first['id']).to eq(academy1.id)
       end
 
       it 'filters by amenity' do
-        get "/api/v1/academies?amenity_id=#{amenity_mats.id}"
+        get "/api/v1/academies?amenity_ids=#{amenity_mats.id},#{amenity_showers.id}"
         expect(json_response.count).to eq(1)
         expect(json_response.first['id']).to eq(academy4.id)
       end
@@ -87,11 +87,11 @@ RSpec.describe 'Api::V1::Academies', type: :request do
 
     context 'when chaining filters' do
       it 'filters by Term AND Pass Type' do
-        get '/api/v1/academies?term=Dublin&pass_type=day_pass'
+        get '/api/v1/academies?term=Dublin&pass_types=day_pass'
         expect(json_response.count).to eq(1)
         expect(json_response.first['id']).to eq(academy1.id)
 
-        get '/api/v1/academies?term=London&pass_type=day_pass'
+        get '/api/v1/academies?term=London&pass_types=day_pass'
         expect(JSON.parse(response.body)).to be_empty
       end
     end
